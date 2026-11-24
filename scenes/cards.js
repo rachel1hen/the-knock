@@ -28,12 +28,41 @@ export function buildCard(title, sub, o = {}) {
 }
 
 // A line from the chapter, laid over a scene plate (transparent bg, just the type).
+// A long line is broken into two lines of type, the way a subtitle is, and the
+// size comes down a step so it still fits the frame.
 export function buildLine(text, o = {}) {
   const ty = new Ref(1920, 1080, 1);
-  const y = o.y ?? 880, size = o.size ?? 58;
-  ty.text(text, 960, y, `italic 600 ${size}px "Cormorant Garamond"`,
-    lin(0, y - size, 0, y + size * .3, [[0, '#f8ecd0'], [1, '#d9b877']]),
-    { dir: 'edge', fallback: 14, maxR: 6, group: 't', alpha: .96 });
+  const size = o.size ?? 58;
+  const lines = wrap(text, size, o.maxW ?? 1560);
+  const lh = size * 1.34;
+  const y0 = o.y ?? 880;
+  // the block is centred on y0
+  const first = y0 - (lines.length - 1) * lh * .5;
+  for (let i = 0; i < lines.length; i++) {
+    const y = first + i * lh;
+    ty.text(lines[i], 960, y, `italic 600 ${size}px "Cormorant Garamond"`,
+      lin(0, y - size, 0, y + size * .3, [[0, '#f8ecd0'], [1, '#d9b877']]),
+      { dir: 'edge', fallback: 14, maxR: 6, group: 't', alpha: .96 });
+  }
   const typeStrokes = paintRef(ty, { R: LADDER, T: 8, seed: o.seed ?? 31, app: APP, solid: true });
   return { strokes: typeStrokes, ref: ty };
+}
+
+// break a line of type into lines that fit, without ever splitting a word
+function wrap(text, size, maxW) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const approx = w => w.length * size * .46;      // Cormorant italic runs narrow
+  if (!words.length) return [''];
+  let lines = [], cur = words[0];
+  for (let i = 1; i < words.length; i++) {
+    if (approx(cur + ' ' + words[i]) <= maxW) cur += ' ' + words[i];
+    else { lines.push(cur); cur = words[i]; }
+  }
+  lines.push(cur);
+  // more than two lines of type is too much to read on a wall: shrink instead
+  if (lines.length > 2) {
+    const s = Math.floor(size * Math.sqrt(2 / lines.length));
+    return wrap(text, s, maxW * Math.sqrt(2 / lines.length));
+  }
+  return lines;
 }

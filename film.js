@@ -1,54 +1,54 @@
 // "The Knock" — chapter two of the story, one video, painted every frame.
-// The cut list is the chapter's beats: the question, the knock, the door, the bag,
-// the kick, the stare, the sneer, and the line that stops the room.
+//
+// The cut list is the chapter: every line of source/chapter_2.txt is a shot,
+// with the spoken words painted into the picture in the film's own type and the
+// narrated lines carried by the picture. Nothing is skipped, and the film's
+// length is the length of the chapter.
+//
+// The score is one held chord that moves with the story; the light changes with
+// each of the film's four rooms (cold, warm, blood, dark).
+
 import { Impasto } from './engine/impasto.js';
-import { T } from './timeline.js';
+import { T, BEATS, END, DUR } from './timeline.js';
 import { buildShots } from './scenes/story.js';
 import { buildCard, buildLine } from './scenes/cards.js';
-import { LINES, LINE_IN } from './scenes/lines.js';
+import { LINES } from './scenes/lines.gen.js';
 import { clamp, lerp, ss, seg, eo, hash } from './scenes/common.js';
 
 const NEVER = 1e6;
-let E, P, credits;
-
-// shot -> camera and look
-const SHOTS = [
-  { t0: T.title,   dur: T.room - T.title,   cam: [960, 540], zoom: [1.00, 1.05], look: 'dark' },
-  { t0: T.room,    dur: T.knock - T.room,   cam: [975, 560], zoom: [1.00, 1.05], look: 'cold' },
-  { t0: T.knock,   dur: T.door - T.knock,   cam: [960, 520], zoom: [1.05, 1.11], look: 'cold' },
-  { t0: T.door,    dur: T.bag - T.door,     cam: [960, 560], zoom: [1.00, 1.06], look: 'warm' },
-  { t0: T.bag,     dur: T.kick - T.bag,     cam: [930, 780], zoom: [1.10, 1.16], look: 'warm' },
-  { t0: T.kick,    dur: T.stare - T.kick,   cam: [840, 840], zoom: [1.00, 1.08], look: 'blood' },
-  { t0: T.stare,   dur: T.sneer - T.stare,  cam: [960, 600], zoom: [1.00, 1.12], look: 'cold' },
-  { t0: T.sneer,   dur: T.what - T.sneer,   cam: [1240, 480], zoom: [1.00, 1.10], look: 'warm' },
-  { t0: T.what,    dur: T.endcard - T.what, cam: [960, 600], zoom: [1.12, 1.20], look: 'dark' },
-  { t0: T.endcard, dur: T.end - T.endcard,   cam: [960, 540], zoom: [1.00, 1.04], look: 'dark' },
-];
+let E, P, B, credits;
 
 export async function setup(canvas) {
   await document.fonts.load('italic 600 108px "Cormorant Garamond"');
   await document.fonts.load('500 40px "Cormorant SC"');
+  await document.fonts.load('italic 600 58px "Cormorant Garamond"');
   E = new Impasto(canvas);
 
-  const shots = buildShots();
-  const head = buildCard('THE KNOCK', 'chapter two of the story', { seed: 5, titleY: 520 });
-  const tail = buildCard('THE KNOCK', 'an impasto palette-knife study', { seed: 7, titleY: 520, glow: '#2a1d12' });
+  // the plates, built once each
+  const built = new Map(buildShots());
+  const up = (b, w, h) => ({ b: E.batch(b.strokes.data()), tex: E.texture(b.ref.ctx.canvas), w, h });
 
   P = {};
-  SHOTS.forEach((s, i) => {
-    const up = (b, w, h) => ({ b: E.batch(b.strokes.data()), tex: E.texture(b.ref.ctx.canvas), w, h });
-    if (i === 0) {
-      P[i] = { bg: up(head.bg, 1920, 1080), type: up(head.type, 1920, 1080) };
-    } else if (i === 9) {
-      P[i] = { bg: up(tail.bg, 1920, 1080), type: up(tail.type, 1920, 1080) };
-    } else {
-      P[i] = { bg: up(shots[i].bg, 1920, 1080) };
-      if (LINES[i]) {
-        const line = buildLine(LINES[i], { seed: 31 + i, y: i === 4 ? 250 : 880 });
-        P[i].line = up(line, 1920, 1080);
-      }
+  B = {};
+
+  // the title and the end card
+  const head = buildCard('THE KNOCK', 'chapter two of the story', { seed: 5, titleY: 520 });
+  P.head = { bg: up(head.bg, 1920, 1080), type: up(head.type, 1920, 1080) };
+  const tail = buildCard('THE KNOCK', 'an impasto palette-knife study', { seed: 7, titleY: 520, glow: '#2a1d12' });
+  P.tail = { bg: up(tail.bg, 1920, 1080), type: up(tail.type, 1920, 1080) };
+
+  // every line of the chapter gets its plate, and its type if it is spoken
+  for (const beat of BEATS) {
+    if (beat.n === 0 || beat.n === 999) continue;
+    const plate = built.get(beat.plate);
+    if (!plate) throw new Error('no plate: ' + beat.plate);
+    if (!P[beat.n]) P[beat.n] = { bg: up(plate.bg, 1920, 1080) };
+    if (beat.spoken) {
+      // the type sits low, out of the way of what the picture is saying
+      const line = buildLine('“' + beat.spoken + '”', { seed: 31 + beat.n, y: 880, size: beat.dw > 11 ? 50 : 58 });
+      P[beat.n].line = up(line, 1920, 1080);
     }
-  });
+  }
 
   credits = document.createElement('div');
   credits.style.cssText = 'position:fixed;left:0;right:0;top:930px;text-align:center;font-family:"Cormorant SC",serif;color:#cbbb9c;letter-spacing:.08em;opacity:0;line-height:1.5;text-shadow:0 2px 6px rgba(0,0,0,.7)';
@@ -56,7 +56,7 @@ export async function setup(canvas) {
     '<div style="font-size:19px;margin-top:14px;color:#8d8271">type: Cormorant (OFL) · text adapted from chapter two</div>';
   document.body.appendChild(credits);
 
-  window.DUR = T.end;
+  window.DUR = END;
   return frame;
 }
 
@@ -67,37 +67,50 @@ function plate(pl, o) {
   E.draw(pl.b, { ...o, appear: o.appear ?? -NEVER, appDur: .14 });
 }
 
-// the door answers a knock
+// the room the shot is in, and the light in it
+const POST = {
+  cold:  { ground: [.012, .014, .018], expo: 1.0,  sat: .92,  contrast: 1.06, vig: .38, spec: .22, shin: 26, lightCol: [.86, .92, 1.05] },
+  warm:  { ground: [.020, .014, .008], expo: 1.02, sat: 1.06, contrast: 1.05, vig: .34, spec: .28, shin: 24, lightCol: [1, .90, .74] },
+  blood: { ground: [.030, .012, .012], expo: 1.0,  sat: 1.14, contrast: 1.08, vig: .42, spec: .26, shin: 24, lightCol: [1, .82, .72] },
+  dark:  { ground: [.010, .010, .012], expo: .95,  sat: 1.0,  contrast: 1.10, vig: .50, spec: .22, shin: 24, lightCol: [1, .86, .66] },
+  // the white light of the moment they go down
+  flash: { ground: [.10, .12, .15], expo: 1.12, sat: .68,  contrast: 1.02, vig: .34, spec: .34, shin: 30, lightCol: [.94, .97, 1.05] },
+};
+
+// the shaker: the door answers a knock
 const shake = t => {
   let s = 0;
-  for (const k of [T.kn1, T.kn2]) { const d = t - k; if (d > 0 && d < 1.1) s += 15 * Math.exp(-d * 4.6) * Math.sin(d * 72); }
+  for (const k of [T.knockHit, T.knockHit + 2.1]) { const d = t - k; if (d > 0 && d < 1.1) s += 15 * Math.exp(-d * 4.6) * Math.sin(d * 72); }
   return s;
 };
 
-function shot(i, t) {
-  const s = SHOTS[i], k = ss(clamp((t - s.t0) / s.dur));
-  let cam = { x: s.cam[0], y: s.cam[1], zoom: lerp(s.zoom[0], s.zoom[1], k) };
-  if (i === 2) cam.x += shake(t);
-  plate(P[i].bg, { t, cam, grey: 0, reveal: NEVER, appear: s.t0, appDur: .8, run: .35 });
-  if (i === 0 || i === 9) {
-    plate(P[i].type, { t, cam, grey: 0, reveal: NEVER, appear: s.t0 + .35, appDur: 1.1, run: 0 });
-  } else if (P[i].line) {
-    plate(P[i].line, { t, cam, grey: 0, reveal: NEVER, appear: s.t0 + LINE_IN, appDur: 1.3, run: 0 });
-  }
-  return s.look;
-}
-
-const POST = {
-  cold:  { ground: [.012, .014, .018], expo: 1.0, sat: .92, contrast: 1.06, vig: .38, spec: .22, shin: 26, lightCol: [.86, .92, 1.05] },
-  warm:  { ground: [.020, .014, .008], expo: 1.02, sat: 1.06, contrast: 1.05, vig: .34, spec: .28, shin: 24, lightCol: [1, .90, .74] },
-  blood: { ground: [.030, .012, .012], expo: 1.0, sat: 1.14, contrast: 1.08, vig: .42, spec: .26, shin: 24, lightCol: [1, .82, .72] },
-  dark:  { ground: [.010, .010, .012], expo: .95, sat: 1.0, contrast: 1.10, vig: .50, spec: .22, shin: 24, lightCol: [1, .86, .66] },
-};
-
 function frame(t) {
-  let i = 0; while (i < SHOTS.length - 1 && t >= SHOTS[i + 1].t0) i++;
+  // which beat are we in?
+  let i = 0;
+  while (i < BEATS.length - 1 && t >= BEATS[i + 1].t0) i++;
+  const beat = BEATS[i];
+  const k = ss(clamp((t - beat.t0) / beat.dur));
+  const zoom = lerp(beat.zoom[0], beat.zoom[1], k);
+
   E.begin();
-  const look = shot(i, t);
-  E.finish({ ...POST[look] });
+
+  if (beat.n === 0) {
+    // the title card
+    plate(P.head.bg, { t, cam: { x: 960, y: 540, zoom, rot: 0 }, grey: 0, reveal: NEVER, appear: 0, appDur: .8, run: .35 });
+    plate(P.head.type, { t, cam: { x: 960, y: 540, zoom, rot: 0 }, grey: 0, reveal: NEVER, appear: .35, appDur: 1.1, run: 0 });
+  } else if (beat.n === 999) {
+    plate(P.tail.bg, { t, cam: { x: 960, y: 540, zoom, rot: 0 }, grey: 0, reveal: NEVER, appear: beat.t0, appDur: .8, run: .35 });
+    plate(P.tail.type, { t, cam: { x: 960, y: 540, zoom, rot: 0 }, grey: 0, reveal: NEVER, appear: beat.t0 + .35, appDur: 1.1, run: 0 });
+  } else {
+    const p = P[beat.n];
+    const cam = { x: beat.cam[0] + (beat.plate === 'knockdoor' ? shake(t) : 0), y: beat.cam[1], zoom, rot: 0 };
+    plate(p.bg, { t, cam, grey: 0, reveal: NEVER, appear: beat.t0, appDur: .8, run: .35 });
+    if (p.line) {
+      // the type is laid in a beat after the picture settles, and stays
+      plate(p.line, { t, cam, grey: 0, reveal: NEVER, appear: beat.t0 + .9, appDur: 1.3, run: 0 });
+    }
+  }
+
+  E.finish({ ...POST[beat.look] });
   credits.style.opacity = String(ss(seg(t, T.endcard, T.endcard + .6)) * (1 - ss(seg(t, T.end - .5, T.end - .1))));
 }

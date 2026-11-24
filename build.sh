@@ -10,8 +10,10 @@ PY="$LIB/.venv/bin/python"
 [ -x "$PY" ] || PY=python3
 cd "$HERE"
 node tools/dump_timeline.mjs                        # the grid -> out/timeline.json
+node tools/dump_lines.mjs                           # the chapter -> out/lines.json + scenes/lines.gen.js
 "$PY" music/score.py                                # the score
 "$PY" mix.py                                        # foley and the mix
+node tools/dump_cues.mjs                            # the painted lines -> out/cues.json
 cd "$LIB"
 node core/render/video.mjs "$HERE" --fps 24 --workers 6 --out "$HERE/out/video.mp4"
 sh core/render/mux.sh "$HERE/out/video.mp4" "$HERE/out/mix.wav" "$HERE/the-knock.mp4" 24 0

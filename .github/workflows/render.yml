@@ -25,18 +25,18 @@ jobs:
       - name: score and mix
         run: |
           node tools/dump_timeline.mjs
+          node tools/dump_lines.mjs
           python music/score.py
           python mix.py
       - name: subtitle cues
         run: |
           node tools/dump_cues.mjs
-          python lemo-opuscar/core/render/srt.py out/cues.json subtitles_en.srt
+          python lemo-opuscar/core/render/srt.py out/cues.json out/subtitles_en.srt
       - uses: actions/upload-artifact@v4
         with:
           name: audio
-          path: |
-            out/mix.wav
-            subtitles_en.srt
+          path: out/
+          include-hidden-files: false
 
   slices:
     name: paint slice ${{ matrix.slice }}
@@ -44,7 +44,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        slice: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        slice: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -62,7 +62,7 @@ jobs:
           LIB: ${{ github.workspace }}/lemo-opuscar
           LEMO_ANGLE: swiftshader
           SLICE: ${{ matrix.slice }}
-          SLICES: 12
+          SLICES: 20
           FPS: 24
         run: node tools/render_slice.mjs "$GITHUB_WORKSPACE"
       - uses: actions/upload-artifact@v4
@@ -76,17 +76,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: ffmpeg and the library
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          git clone --depth 1 https://github.com/lemomo-ai/lemo-opuscar.git lemo-opuscar
+          # the library's muxer needs ffmpeg 7+; Ubuntu's apt ships 6.1, so fall back
+          # to the static build the library's own error message points at
+          VER=$(ffmpeg -version 2>/dev/null | head -1 | sed -n '1s/.*version \(n\{0,1\}[0-9]\{1,\}\).*/\1/p')
+          if [ -z "$VER" ] || [ "$VER" -lt 7 ]; then
+            echo "::notice::ffmpeg $VER is too old for the muxer, installing a static build"
+            curl -L --fail --retry 3 -o /tmp/ffmpeg.tar.xz https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
+            mkdir -p /tmp/ffx && tar -xJf /tmp/ffmpeg.tar.xz -C /tmp/ffx --strip-components=1
+            sudo install -m755 /tmp/ffx/ffmpeg /usr/local/bin/ffmpeg
+            sudo install -m755 /tmp/ffx/ffprobe /usr/local/bin/ffprobe
+            ffmpeg -version | head -1
+          fi
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
       - name: concat and mux
         run: |
           mkdir -p out
-          ls artifacts/seg-*/seg_*.mp4 | sort -V > segments.txt
+          # the concat demuxer wants "file '...'" lines; sort -V keeps 0,1,2 before 10,11
+          ls artifacts/seg-*/seg_*.mp4 | sort -V | sed "s/.*/file '&'/" > segments.txt
           cat segments.txt
           ffmpeg -y -loglevel error -f concat -safe 0 -i segments.txt -c copy out/video.mp4
-          ffmpeg -y -loglevel error -i out/video.mp4 -i artifacts/audio/mix.wav -c:v copy -c:a aac -b:a 192k -shortest the-knock.mp4
+          # the library's muxer normalises the audio to -14 LUFS; a plain ffmpeg mux does not
+          sh lemo-opuscar/core/render/mux.sh out/video.mp4 artifacts/audio/mix.wav the-knock.mp4 24 0
           ffmpeg -v error -y -ss 20 -i the-knock.mp4 -frames:v 1 -q:v 2 poster.jpg
           ffprobe -v error -show_entries format=duration -show_entries stream=codec_name,width,height -of default=noprint_wrappers=1 the-knock.mp4
       - uses: actions/upload-artifact@v4
