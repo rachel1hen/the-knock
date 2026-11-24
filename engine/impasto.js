@@ -210,8 +210,8 @@ function sh(gl, type, src) { const s = gl.createShader(type); gl.shaderSource(s,
 function prog(gl, vs, fs) { const p = gl.createProgram(); gl.attachShader(p, sh(gl, gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl, gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); const u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); for (let i = 0; i < n; i++) { const a = gl.getActiveUniform(p, i); u[a.name] = gl.getUniformLocation(p, a.name); } return { p, u }; }
 
 export const POST_DEFAULT = {
-  light: [-.55, -.6, .7], norm: 3.2, amb: .8, dif: .28, spec: .16, shin: 30, ao: 1.2,
-  ground: [.46, .4, .33], lift: [0, 0, 0], gain: [1, 1, 1], sat: 1, expo: 1, vig: .22, contrast: 1, weave: .12, lightCol: [1, .97, .9],
+  light: [-.55, -.6, .7], norm: 4.1, amb: .74, dif: .36, spec: .16, shin: 30, ao: 1.35,
+  ground: [.46, .4, .33], lift: [0, 0, 0], gain: [1, 1, 1], sat: 1, expo: 1, vig: .22, contrast: 1, weave: .14, lightCol: [1, .97, .9],
 };
 
 export class Impasto {

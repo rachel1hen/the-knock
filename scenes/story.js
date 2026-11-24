@@ -13,7 +13,7 @@
 import { Ref, paintRef } from '../engine/plate.js';
 import { P, E, RR, lin, rad, HP, HE, HR, HL, handSeed, HAND } from './common.js';
 
-const LADDER = [40, 20, 7, 3.5, 2];
+const LADDER = [40, 20, 7, 3.5, 2.2, 1.2];
 const APP = (x, y) => x / 1920 * .75;
 
 // a field: the whole frame, one value plan

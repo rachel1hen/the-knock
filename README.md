@@ -1,6 +1,6 @@
 # The Knock
 
-*An impasto palette-knife film. One chapter of the story, one video, sixty-two seconds.*
+*An impasto palette-knife film. One chapter of the story, one video, eight and a half minutes.*
 
 Everything on screen is painted in code. The engine draws a flat, value-planned illustration
 (Canvas2D), then lays thousands of palette-knife strokes over it — coarse first, fine only
@@ -12,40 +12,56 @@ The chapter's dialogue is painted into the picture too, in Cormorant Garamond, s
 the glyphs so the letters hold their shape on the wall. `subtitles_en.srt` carries the same
 words on the same clock.
 
-## The chapter, in eight plates
+## The whole chapter
 
-| beat | plate | what the knife does |
-|---|---|---|
-| the question | a cold room at night, one window, him seated with his back to us | long horizontal planes of blue-grey; a thin pallid rim on the chair |
-| the knock | the door, filling the frame | wood grain in vertical strokes; the frame shakes on both knocks |
-| they come in | the hallway blown out behind them, three silhouettes in it | the brightest light in the film, everything else a cut-out |
-| the money | a cloth bag on the floor, worn notes and coins spilled around it | amber pool of lamplight; tiny bright strokes for the coins |
-| the kick | his mother on the floor, the stool tipped, a boot mid-arc | red bleeding into the grey; one violent diagonal |
-| the stare | him standing against the window light, the others frozen small behind | cold rim light down one side; two bright eyes |
-| the sneer | the bald man's head, filling the right of the frame | warm flesh strokes, a grin in two strokes, a wedding invitation drifting on the left |
-| what did you say | the stare again, darker | everything pulled down except the eyes and the line |
+The film is the length of the chapter and covers all of it. The 71 lines of
+`source/chapter_2.txt` are 71 shots: the spoken words are painted in, the narrated lines are
+pictures that carry the meaning, and nothing is skipped. `tools/dump_lines.mjs` reads the
+chapter into the list the film and the cue exporter both use, so the words on the wall are
+the chapter's own words and cannot drift from it.
+
+| | |
+|---|---|
+| the question | a cold room at night, one window, him seated with his back to us |
+| the knock | the door, filling the frame, shaking on both knocks |
+| they come in | the hallway blown out behind them, three silhouettes in it |
+| the neighbours | out in the lane, half hidden, whispering what they dare not say |
+| the money | a cloth bag on the floor, worn notes and coins spilled around it |
+| the kick | his mother on the floor, the stool tipped, a boot mid-arc |
+| the stare | him against the window light, the others frozen small behind |
+| the sneer | the bald man's head, filling the right of the frame |
+| what did you say | the stare again, darker |
+| kneel down | the demand, the killing intent, the room gone cold |
+| the fight | a punch thrown, a boot that answers it, the white light |
+| apologise | the bald man on his knees, then limping away |
 
 ## Sound
 
 A held chord in A minor: a low voice under the room, one figure above it that never resolves
 until the sneer, where it lifts a third and comes home a bar too late. The foley is close and
-dry — two knocks on old wood, a hinge, coins on a floor, the kick, and his breath just after.
+dry — two knocks on old wood, a hinge, coins on a floor, the kick, the punch, the men rushing
+in, the knees going down, and the limp away.
+
+Every line is also spoken, by Kokoro, offline: the library's own model, no API and no network
+at render time. Chen Ping has his own voice, a little closer to the ear than the narrator who
+tells the story around him; his mother and Bald Head have theirs.
 
 ## How it is built
 
 - `engine/` — the impasto engine (reference drawing → knife strokes → WebGL paint)
-- `scenes/story.js` — the eight plates, the figures, the light
+- `scenes/story.js` — the plates, the figures, the light
 - `scenes/lines.js` — the chapter's dialogue, in the order the chapter says it
 - `scenes/cards.js` — the title and the chapter lines
-- `timeline.js` — the music grid; every cut and every sound sits on it
+- `timeline.js` — the cut list, the music grid; every cut and every sound sits on it
 - `music/score.py`, `mix.py` — the score and the foley, pure numpy
-- `film.js` — the cut list, the camera, the light through each shot
-- `tools/` — the timeline dump, the subtitle cues, the slice renderer
+- `film.js` — the chapter's camera and the light through each shot
+- `tools/` — the timeline dump, the chapter dump, the subtitle cues, the voices, the slice renderer
 
 Render locally with `sh build.sh` (one machine, six workers) or on GitHub Actions, where the
-film is painted by twelve runners at once — twelve slices of frames, joined at the end.
+film is painted by twenty runners at once — twenty slices of frames, joined at the end.
 
 ## Credits
 
 Text adapted from chapter two of the story. Everything else: written, painted and scored in
-code. Type: Cormorant Garamond and Cormorant SC (SIL Open Font License). See `CREDITS`.
+code. Type: Cormorant Garamond and Cormorant SC (SIL Open Font License). Voice: Kokoro
+(Apache 2.0). See `CREDITS`.

@@ -197,6 +197,15 @@ if narration and beat_of:
         v, vsr = sf.read(wav)
         if v.ndim > 1:
             v = v.mean(1)
+        # Kokoro pads each utterance with silence; trim it, so the voice starts
+        # and ends inside the shot it belongs to
+        peak = float(np.abs(v).max()) if len(v) else 0.
+        if peak > 0:
+            idx = np.flatnonzero(np.abs(v) > max(peak * .02, 1e-4))
+            if len(idx):
+                a = max(0, int(idx[0]) - int(.03 * vsr))
+                b = min(len(v), int(idx[-1]) + int(.12 * vsr))
+                v = v[a:b]
         if vsr != SR:
             # resample by linear interpolation (the voices are 24 kHz)
             m = int(len(v) * SR / vsr)

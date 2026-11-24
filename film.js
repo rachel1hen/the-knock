@@ -69,12 +69,12 @@ function plate(pl, o) {
 
 // the room the shot is in, and the light in it
 const POST = {
-  cold:  { ground: [.012, .014, .018], expo: 1.0,  sat: .92,  contrast: 1.06, vig: .38, spec: .22, shin: 26, lightCol: [.86, .92, 1.05] },
-  warm:  { ground: [.020, .014, .008], expo: 1.02, sat: 1.06, contrast: 1.05, vig: .34, spec: .28, shin: 24, lightCol: [1, .90, .74] },
-  blood: { ground: [.030, .012, .012], expo: 1.0,  sat: 1.14, contrast: 1.08, vig: .42, spec: .26, shin: 24, lightCol: [1, .82, .72] },
-  dark:  { ground: [.010, .010, .012], expo: .95,  sat: 1.0,  contrast: 1.10, vig: .50, spec: .22, shin: 24, lightCol: [1, .86, .66] },
+  cold:  { ground: [.012, .014, .018], expo: 1.0,  sat: .92,  contrast: 1.06, vig: .38, spec: .30, shin: 26, lightCol: [.86, .92, 1.05] },
+  warm:  { ground: [.020, .014, .008], expo: 1.02, sat: 1.06, contrast: 1.05, vig: .34, spec: .36, shin: 24, lightCol: [1, .90, .74] },
+  blood: { ground: [.030, .012, .012], expo: 1.0,  sat: 1.14, contrast: 1.08, vig: .42, spec: .34, shin: 24, lightCol: [1, .82, .72] },
+  dark:  { ground: [.010, .010, .012], expo: .95,  sat: 1.0,  contrast: 1.10, vig: .50, spec: .30, shin: 24, lightCol: [1, .86, .66] },
   // the white light of the moment they go down
-  flash: { ground: [.10, .12, .15], expo: 1.12, sat: .68,  contrast: 1.02, vig: .34, spec: .34, shin: 30, lightCol: [.94, .97, 1.05] },
+  flash: { ground: [.10, .12, .15], expo: 1.12, sat: .68,  contrast: 1.02, vig: .34, spec: .42, shin: 30, lightCol: [.94, .97, 1.05] },
 };
 
 // the shaker: the door answers a knock

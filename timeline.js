@@ -22,11 +22,13 @@ export const at = (bar, b = 1) => G.t0 + (bar - 1) * BAR + (b - 1) * BEAT;
 export const TB = at;
 
 // ---- how long a line stays on screen -------------------------------------
-// A spoken line has to be read (about 2.6 words a second, the speed of a
-// subtitle); a narrated line is listened to as it is shown (about 3.4 words a
-// second, faster than reading). Either way there is a beat of silence around
-// it, and a long line is never cut short.
-const READ = 2.6, LISTEN = 3.4, PAD = 1.5, FLOOR = 2.6, CAP = 9.0;
+// A spoken line has to be read (about 2.9 words a second, the speed of a
+// subtitle); a narrated line is listened to as it is shown (about 2.6 words a
+// second - the voice is slower than the eye here). Either way there is a beat
+// of silence around it, and a long line is never cut short: the cap is only
+// there to stop one runaway line, so it sits above the longest line in the
+// chapter rather than through the middle of it.
+const READ = 2.9, LISTEN = 2.6, PAD = 1.3, FLOOR = 2.6, CAP = 16.0;
 
 const hold = l => {
   if (!l) return 0;
