@@ -24,8 +24,8 @@ jobs:
         run: git clone --depth 1 https://github.com/lemomo-ai/lemo-opuscar.git lemo-opuscar
       - name: score and mix
         run: |
-          node tools/dump_timeline.mjs
           node tools/dump_lines.mjs
+          node tools/dump_timeline.mjs
           python music/score.py
           python mix.py
       - name: the voices
