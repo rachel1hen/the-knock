@@ -1,0 +1,85 @@
+name: render
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: render-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audio:
+    name: score and foley
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install --quiet numpy soundfile
+      - name: score and mix
+        run: |
+          node tools/dump_timeline.mjs
+          python music/score.py
+          python mix.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audio
+          path: out/mix.wav
+
+  slices:
+    name: paint slice ${{ matrix.slice }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        slice: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: ffmpeg and the headless browser
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          git clone --depth 1 https://github.com/lemomo-ai/lemo-opuscar.git lemo-opuscar
+          cd lemo-opuscar
+          npm ci --silent
+          node node_modules/playwright-core/cli.js install chromium-headless-shell
+          sudo node node_modules/playwright-core/cli.js install-deps chromium-headless-shell
+      - name: paint this slice
+        env:
+          LIB: ${{ github.workspace }}/lemo-opuscar
+          LEMO_ANGLE: swiftshader
+          SLICE: ${{ matrix.slice }}
+          SLICES: 12
+          FPS: 24
+        run: node tools/render_slice.mjs "$GITHUB_WORKSPACE"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: seg-${{ matrix.slice }}
+          path: out/seg_${{ matrix.slice }}.mp4
+
+  join:
+    name: join the slices
+    needs: [audio, slices]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: concat and mux
+        run: |
+          ls artifacts/seg-*/seg_*.mp4 | sort -V > segments.txt
+          cat segments.txt
+          ffmpeg -y -loglevel error -f concat -safe 0 -i segments.txt -c copy out/video.mp4
+          ffmpeg -y -loglevel error -i out/video.mp4 -i artifacts/audio/mix.wav -c:v copy -c:a aac -b:a 192k -shortest the-knock.mp4
+          ffprobe -v error -show_entries format=duration -show_entries stream=codec_name,width,height -of default=noprint_wrappers=1 the-knock.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: the-knock
+          path: the-knock.mp4
