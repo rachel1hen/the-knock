@@ -5,24 +5,11 @@ import { Impasto } from './engine/impasto.js';
 import { T } from './timeline.js';
 import { buildShots } from './scenes/story.js';
 import { buildCard, buildLine } from './scenes/cards.js';
+import { LINES, LINE_IN } from './scenes/lines.js';
 import { clamp, lerp, ss, seg, eo, hash } from './scenes/common.js';
 
 const NEVER = 1e6;
 let E, P, credits;
-
-// the lines, in the order the chapter says them
-const LINES = [
-  null,
-  '“So the Geng family is really like this?”',
-  '“Mum, who is this?”',
-  '“How’s the money ready?”',
-  '“Can these rags have 10,000?”',
-  '“Mum!”',
-  '“Mom — since I’ve come out, let me handle this.”',
-  '“Today is your wedding day … green hat turtle.”',
-  '“What did you say?”',
-  null,
-];
 
 // shot -> camera and look
 const SHOTS = [
@@ -95,7 +82,7 @@ function shot(i, t) {
   if (i === 0 || i === 9) {
     plate(P[i].type, { t, cam, grey: 0, reveal: NEVER, appear: s.t0 + .35, appDur: 1.1, run: 0 });
   } else if (P[i].line) {
-    plate(P[i].line, { t, cam, grey: 0, reveal: NEVER, appear: s.t0 + 1.1, appDur: 1.3, run: 0 });
+    plate(P[i].line, { t, cam, grey: 0, reveal: NEVER, appear: s.t0 + LINE_IN, appDur: 1.3, run: 0 });
   }
   return s.look;
 }

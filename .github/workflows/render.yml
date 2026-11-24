@@ -20,15 +20,23 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - run: pip install --quiet numpy soundfile
+      - name: the library (for the subtitle exporter)
+        run: git clone --depth 1 https://github.com/lemomo-ai/lemo-opuscar.git lemo-opuscar
       - name: score and mix
         run: |
           node tools/dump_timeline.mjs
           python music/score.py
           python mix.py
+      - name: subtitle cues
+        run: |
+          node tools/dump_cues.mjs
+          python lemo-opuscar/core/render/srt.py out/cues.json subtitles_en.srt
       - uses: actions/upload-artifact@v4
         with:
           name: audio
-          path: out/mix.wav
+          path: |
+            out/mix.wav
+            subtitles_en.srt
 
   slices:
     name: paint slice ${{ matrix.slice }}
@@ -74,12 +82,20 @@ jobs:
           path: artifacts
       - name: concat and mux
         run: |
+          mkdir -p out
           ls artifacts/seg-*/seg_*.mp4 | sort -V > segments.txt
           cat segments.txt
           ffmpeg -y -loglevel error -f concat -safe 0 -i segments.txt -c copy out/video.mp4
           ffmpeg -y -loglevel error -i out/video.mp4 -i artifacts/audio/mix.wav -c:v copy -c:a aac -b:a 192k -shortest the-knock.mp4
+          ffmpeg -v error -y -ss 20 -i the-knock.mp4 -frames:v 1 -q:v 2 poster.jpg
           ffprobe -v error -show_entries format=duration -show_entries stream=codec_name,width,height -of default=noprint_wrappers=1 the-knock.mp4
       - uses: actions/upload-artifact@v4
         with:
           name: the-knock
-          path: the-knock.mp4
+          path: |
+            the-knock.mp4
+            poster.jpg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: subtitles
+          path: artifacts/audio/subtitles_en.srt

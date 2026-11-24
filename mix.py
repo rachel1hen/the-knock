@@ -6,6 +6,7 @@ import numpy as np
 import soundfile as sf
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+os.makedirs(os.path.join(HERE, 'out'), exist_ok=True)
 TL = json.load(open(os.path.join(HERE, 'out', 'timeline.json')))
 T, FX, DUR = TL['T'], TL['FX'], TL['DUR'] + .4
 SR = 44100

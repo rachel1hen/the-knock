@@ -6,6 +6,7 @@ import numpy as np
 import soundfile as sf
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+os.makedirs(os.path.join(HERE, '..', 'out'), exist_ok=True)
 TL = json.load(open(os.path.join(HERE, '..', 'out', 'timeline.json')))
 T, NA, NB, TB, BEAT, CH_B, CHORDS = TL['T'], TL['NA'], TL['NB'], TL['TB'], TL['BEAT'], TL['CH_B'], TL['CHORDS']
 DUR = TL['DUR'] + 1.2
