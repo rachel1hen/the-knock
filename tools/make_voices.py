@@ -78,9 +78,16 @@ def main():
     json.dump([{k: v for k, v in j.items() if not k.startswith('_')} for j in jobs],
               open(req, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 
-    py = os.path.join(LIB, '.venv', 'Scripts', 'python.exe')
-    if not os.path.exists(py):
-        py = os.path.join(LIB, '.venv', 'bin', 'python')
+    # the library's own virtualenv if it has one (local renders), otherwise
+    # whatever python is on the path (CI installs the runtime itself)
+    py = None
+    for cand in (os.path.join(LIB, '.venv', 'Scripts', 'python.exe'),
+                 os.path.join(LIB, '.venv', 'bin', 'python')):
+        if os.path.exists(cand):
+            py = cand
+            break
+    if py is None:
+        py = sys.executable
     print('voicing', len(jobs), 'lines with', py)
     r = subprocess.run([py, os.path.join(LIB, 'core', 'tts', 'tts.py'), req, OUT],
                        capture_output=True, text=True, encoding='utf-8', errors='replace')
