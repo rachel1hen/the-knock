@@ -87,6 +87,7 @@ export const T = {
   invitation: atLine(35),
   what: atLine(39),
   order: atLine(46),
+  fight: atLine(50),
   punch: atLine(50),
   boom: atLine(52),
   counter: atLine(53),
@@ -126,6 +127,13 @@ export const CHORDS = { Am: [['A3', 'C4', 'E4'], 'A2'], F: [['F3', 'A3', 'C4'], 
 
 export const noteTimes = (mel) => mel.map(([b, bt, n, p]) => ({ t: at(b, bt), d: n * BEAT, pitch: p, bar: b, beat: bt }));
 export const NA = noteTimes(MEL_A), NB = noteTimes(MEL_B);
+
+// the cut list, for the Python side (the mix places sound on the same beats
+// the picture does)
+export const BEATS_JSON = BEATS.map(b => ({
+  n: b.n, t0: +b.t0.toFixed(3), dur: +b.dur.toFixed(3), plate: b.plate, look: b.look,
+  spoken: b.spoken || '', dw: b.dw || 0, nw: b.nw || 0,
+}));
 
 // the foley the mix places
 export const FX = {

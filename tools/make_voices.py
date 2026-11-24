@@ -15,27 +15,33 @@ ROOT = os.path.dirname(HERE)
 LIB = os.environ.get('LIB', os.path.expanduser('~/lemo-opuscar'))
 OUT = os.path.join(ROOT, 'out', 'voice')
 
-# who speaks each line: the chapter's own dialogue decides, and the narration
-# around it is read by whoever the scene is about
-NARRATOR = 'bm_george'
+# Who speaks each line. Chen Ping is the film's protagonist, so he has his own
+# voice - a little lower and steadier than the narrator, who tells the story
+# around him. His mother is the other voice the listener has to know.
+NARRATOR = 'bm_fable'
 CHEN = 'bm_george'
 TANG = 'af_heart'
 BALDY = 'am_michael'
 MOTHER_F = 'af_heart'
 
-# lines spoken by these characters (1-based chapter line numbers)
-CHEN_LINES = {1, 6, 7, 27, 32, 39, 40, 46, 47, 52, 64, 65, 68, 69, 70, 71}
-TANG_LINES = {5, 8, 9, 13, 14, 24, 25, 31, 33, 44, 45, 55, 56, 57}
-BALDY_LINES = {11, 12, 21, 22, 23, 26, 30, 34, 35, 36, 37, 38, 41, 42, 49, 50, 58, 59, 60, 62, 66, 67, 68}
-NEIGHBOUR_LINES = {15, 16, 17, 18, 19}
+# Lines spoken by these characters, from the chapter's own dialogue
+# (1-based chapter line numbers).
+CHEN_LINES = {1, 6, 27, 32, 39, 46, 64, 69}          # Chen Ping, the protagonist
+TANG_LINES = {8, 13, 24, 30, 55}                     # his mother
+BALDY_LINES = {11, 21, 22, 26, 34, 35, 36, 37, 41, 49, 58, 67}   # Bald Head
+NEIGHBOUR_LINES = {16, 17, 18}                       # the neighbours
 
-# the narration around a line is read by that line's speaker when there is one,
-# and by the narrator otherwise; an action beat (no speech) is read by the
-# narrator unless another character owns the moment
+# An action beat has no speech of its own, so the narration around it is read
+# by whoever owns the moment: his mother when she is afraid, Bald Head when he
+# is angry, Chen Ping when the room turns on him.
 ACTION_OWNER = {
-    2: NARRATOR, 3: NARRATOR, 4: TANG, 10: BALDY, 20: BALDY, 28: CHEN,
-    29: BALDY, 43: CHEN, 48: BALDY, 51: BALDY, 53: CHEN, 54: BALDY,
-    61: CHEN, 63: NARRATOR, 70: CHEN, 71: BALDY,
+    2: CHEN, 3: CHEN, 4: TANG, 5: TANG, 7: CHEN, 9: TANG, 10: BALDY,
+    12: BALDY, 14: TANG, 15: NARRATOR, 19: NARRATOR, 20: BALDY, 23: BALDY,
+    25: TANG, 28: CHEN, 29: BALDY, 31: TANG, 33: CHEN, 40: CHEN, 42: BALDY,
+    43: CHEN, 44: TANG, 45: TANG, 47: CHEN, 48: BALDY, 50: BALDY, 51: BALDY,
+    52: TANG, 53: CHEN, 54: BALDY, 56: TANG, 57: CHEN, 59: BALDY, 60: BALDY,
+    61: CHEN, 62: BALDY, 63: NARRATOR, 65: CHEN, 66: BALDY, 68: NARRATOR,
+    70: CHEN, 71: BALDY,
 }
 
 
