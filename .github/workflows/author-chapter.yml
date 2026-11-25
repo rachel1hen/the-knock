@@ -15,7 +15,7 @@ on:
       model:
         description: 'The NVIDIA model that writes the chapter'
         required: false
-        default: 'moonshotai/kimi-k3.1-pro'
+        default: 'mistralai/mistral-large-4-1t-a52b'
         type: string
 
 permissions:

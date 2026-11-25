@@ -16,7 +16,7 @@ system prompt, the conversation, the tools and the tool calls all survive the
 trip. Only the standard library, so a CI runner needs no pip install.
 
 NVIDIA_API_KEY  the key from build.nvidia.com
-NIM_MODEL       the model to serve (default: moonshotai/kimi-k3.1-pro)
+NIM_MODEL       the model to serve (default: mistralai/mistral-large-4-1t-a52b)
 NIM_HOST        the NIM host (default: integrate.api.nvidia.com)
 PORT            the port to listen on (default: 8765)
 """
@@ -28,7 +28,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HOST = os.environ.get("NIM_HOST", "integrate.api.nvidia.com")
-MODEL = os.environ.get("NIM_MODEL", "moonshotai/kimi-k3.1-pro")
+MODEL = os.environ.get("NIM_MODEL", "mistralai/mistral-large-4-1t-a52b")
 PORT = int(os.environ.get("PORT", "8765"))
 KEY = os.environ.get("NVIDIA_API_KEY", "")
 
