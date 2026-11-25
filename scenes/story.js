@@ -12,6 +12,8 @@
 
 import { Ref, paintRef } from '../engine/plate.js';
 import { P, E, RR, lin, rad, HP, HE, HR, HL, handSeed, HAND } from './common.js';
+import { person, seated, neighbour, womanFace, baldHead, COLD, WARM, BLOOD, DARK, WHITE } from './figures.js';
+import { CP, MAM, BALD, BRO, NEI } from './figures.js';
 
 const LADDER = [40, 20, 7, 3.5, 2.2, 1.2];
 const APP = (x, y) => x / 1920 * .75;
@@ -39,36 +41,9 @@ function shaft(r, pts, col) {
   r.fill(P(pts), col, { group: 'light', dir: -80, fallback: -80, maxR: 60, detail: 1, ...HAND() });
 }
 
-// a standing figure: head and shoulders down to the ground line
-function person(r, x, baseY, h, col, o = {}) {
-  const hw = h * .13, top = baseY - h, dx = o.dx ?? 0, lean = o.lean ?? 0;
-  const g = o.group ?? 'fig';
-  r.fill(HE(x + dx, top + hw * .78, hw * .78, hw * .92, 0, 3), col,
-    { group: g, dir: 0, maxR: hw, detail: 2, ...HAND() });
-  r.fill(HP([[x - hw + dx + lean, top + hw * 1.6], [x + hw + dx + lean, top + hw * 1.6],
-    [x + hw * 1.45 + dx, baseY], [x - hw * 1.45 + dx, baseY]], 4, 3), col,
-    { group: g, dir: o.dir ?? 0, maxR: h * .28, detail: 1.5, ...HAND() });
-  if (o.arms) {
-    // arms drawn on, the way a painter adds them last
-    for (const s of o.arms) {
-      r.fill(HL([[x + dx + s[0], top + h * .34], [x + dx + s[1], top + h * .46], [x + dx + s[2], top + h * .58]], 3),
-        col, { group: g, dir: 0, maxR: h * .07, detail: 2, ...HAND({ type: 2 }) });
-    }
-  }
-}
-
-// a figure sitting or fallen: a low body on the ground
-function seated(r, x, y, w, h, col, o = {}) {
-  const g = o.group ?? 'fig';
-  r.fill(HP([[x - w * .5, y - h], [x + w * .5, y - h * .9], [x + w * .58, y], [x - w * .56, y]], 4, 3), col,
-    { group: g, dir: 0, maxR: h * .55, detail: 1.6, ...HAND() });
-  r.fill(HE(x - w * .42, y - h * 1.05, w * .17, h * .21, 0, 3), col,
-    { group: g, dir: 0, maxR: w * .17, detail: 2, ...HAND() });
-}
-
 // the pale edge light on one side of a silhouette
 function rim(r, x, baseY, h, col, side = -1, g = 'rim') {
-  const hw = h * .13, top = baseY - h, w = h * .035;
+  const hw = h * .14, top = baseY - h, w = h * .035;
   r.fill(HP([[x + side * hw * .82, top + h * .07], [x + side * (hw + w), top + h * .1],
     [x + side * (hw * 1.5 + w), baseY], [x + side * hw * 1.45, baseY]], 3, 2), col,
     { group: g, dir: 90, maxR: h * .2, detail: 2, ...HAND() });
@@ -109,44 +84,6 @@ function table(r, x, y, w, h, col) {
   r.fill(HR(x + w * .87, y + h * .28, w * .07, h, 2, 2), col, { group: 'table', dir: 90, maxR: 40, detail: 1.6, ...HAND() });
 }
 
-// a head in profile: the bald man's face
-function baldHead(r, x, y, s, col, o = {}) {
-  const g = o.group ?? 'head';
-  r.fill(HE(x, y, s * .78, s * .82, 0, 5), col, { group: g, dir: 0, maxR: s * .8, detail: 1.4, ...HAND() });
-  // the brow, the eye sockets, the grin
-  r.fill(HP([[x - s * .5, y - s * .22], [x - s * .1, y - s * .3]], 3, 2), '#231710',
-    { group: g, dir: 8, maxR: 30, detail: 2, ...HAND({ type: 2 }) });
-  r.fill(HP([[x - s * .46, y - s * .08], [x - s * .22, y - s * .1]], 3, 2), '#231710',
-    { group: g, dir: -8, maxR: 30, detail: 2, ...HAND({ type: 2 }) });
-  r.fill(HE(x - s * .34, y - s * .09, s * .1, s * .07, 0, 2), '#120c08',
-    { group: g, dir: 0, maxR: 18, detail: 2, ...HAND() });
-  r.fill(HP([[x - s * .48, y + s * .3], [x - s * .16, y + s * .24], [x - s * .08, y + s * .42], [x - s * .42, y + s * .46]], 3, 2), '#170f0a',
-    { group: g, dir: -6, maxR: 34, detail: 2, ...HAND() });
-  r.fill(HP([[x - s * .42, y + s * .33], [x - s * .12, y + s * .29], [x - s * .1, y + s * .38], [x - s * .4, y + s * .42]], 2, 1), '#d8cbb0',
-    { group: g, dir: -6, maxR: 22, detail: 2, ...HAND({ type: 2 }) });
-  if (o.shine) r.fill(HP([[x - s * .5, y - s * .62], [x - s * .18, y - s * .72]], 4, 3), o.shine,
-    { group: 'shine', dir: 0, maxR: 40, detail: 2, ...HAND() });
-}
-
-// a woman's face, front on: the fear, then the anger
-function womanFace(r, x, y, s, col, o = {}) {
-  const g = o.group ?? 'head';
-  r.fill(HE(x, y, s * .66, s * .82, 0, 4), col, { group: g, dir: 90, maxR: s * .8, detail: 1.4, ...HAND() });
-  // hair, falling past the shoulders
-  r.fill(HP([[x - s * .8, y - s * .8], [x - s * .95, y + s * .5], [x - s * .5, y + s * .3],
-    [x - s * .45, y - s * .9], [x + s * .45, y - s * .9], [x + s * .5, y + s * .3],
-    [x + s * .95, y + s * .5], [x + s * .8, y - s * .8]], 5, 4), o.hair ?? '#1b1410',
-    { group: g, dir: 90, maxR: s * .9, detail: 1.6, ...HAND() });
-  // eyes
-  const ey = y - s * .1;
-  r.fill(HE(x - s * .26, ey, s * .11, s * .06, 0, 1), o.eye ?? '#e6dcd0',
-    { group: g, dir: 0, maxR: s * .11, detail: 2, ...HAND({ type: 2 }) });
-  r.fill(HE(x + s * .26, ey, s * .11, s * .06, 0, 1), o.eye ?? '#e6dcd0',
-    { group: g, dir: 0, maxR: s * .11, detail: 2, ...HAND({ type: 2 }) });
-  // the mouth
-  r.fill(HP([[x - s * .2, y + s * .34], [x, y + s * (o.mouth ?? .4)], [x + s * .2, y + s * .34]], 2, 1), o.mouthCol ?? '#3a1d1c',
-    { group: g, dir: 0, maxR: s * .2, detail: 2, ...HAND({ type: 2 }) });
-}
 
 // a hand: a fist, or fingers gripping
 function fist(r, x, y, s, col, o = {}) {
@@ -173,18 +110,6 @@ function note(r, x, y, w, h, col, a) {
     { group: 'note', dir: a * 57, maxR: 34, detail: 2, ...HAND({ type: 2 }) });
 }
 
-// a figure seen from behind, on a landing
-function neighbour(r, x, baseY, h, col, o = {}) {
-  const hw = h * .12, top = baseY - h;
-  r.fill(HE(x, top + hw * .8, hw * .74, hw * .86, 0, 3), col,
-    { group: 'fig', dir: 0, maxR: hw, detail: 2, ...HAND() });
-  r.fill(HP([[x - hw * 1.35, top + hw * 1.5], [x + hw * 1.35, top + hw * 1.5],
-    [x + hw * 1.7, baseY], [x - hw * 1.7, baseY]], 4, 3), col,
-    { group: 'fig', dir: 0, maxR: h * .3, detail: 1.5, ...HAND() });
-  if (o.hood) r.fill(HP([[x - hw * 1.1, top], [x, top - hw * .5], [x + hw * 1.1, top],
-    [x + hw * 1.35, top + hw * .8], [x - hw * 1.35, top + hw * .8]], 4, 3), o.hood,
-    { group: 'fig', dir: 90, maxR: hw * 1.3, detail: 2, ...HAND() });
-}
 
 // a tattooed shoulder, a hint of colour against black
 function tattoo(r, x, y, s, col) {
@@ -215,7 +140,7 @@ const PLATES = {
     door(r, 150, 232, 306, 646, '#3b2a1d', '#2c1f16', '#c9a35e');
     table(r, 700, 856, 520, 150, '#2b1d13');
     r.fill(HE(1156, 828, 24, 26, 0, 2), '#8d7c62', { group: 'table', dir: 0, maxR: 20, detail: 2, ...HAND() });
-    person(r, 900, 900, 430, '#0d0f14', { dir: 0 });
+    seated(r, 900, 930, 250, 300, CP, { lc: COLD, group: 'fig' });
     glow(r, 300, 760, 20, 520, 'rgba(232,180,99,.30)');
   },
 
@@ -229,7 +154,7 @@ const PLATES = {
     }
     r.fill(HR(330, 120, 1260, 26, 3, 3), '#0a0c10', { group: 'bar', dir: 0, maxR: 60, detail: 1.8, ...HAND() });
     // her, beyond, small and blurred by the rain
-    person(r, 1010, 900, 460, '#2b3440', { group: 'fig', dir: 0 });
+    person(r, 1010, 900, 460, '#46566a', { group: 'fig', light: 1, lc: COLD });
     glow(r, 1030, 620, 30, 520, 'rgba(190,205,225,.16)');
     // the rain
     for (let i = 0; i < 46; i++) {
@@ -243,7 +168,7 @@ const PLATES = {
     field(r, [[0, '#1f242c'], [.6, '#13171d'], [1, '#090b0e']]);
     floor(r, 860, '#251a11', '#0e0a07');
     door(r, 1140, 180, 380, 680, '#33251a', '#261a12', '#b8944f');
-    person(r, 760, 960, 620, '#0c0e12', { dir: 0, arms: [[-40, -90, -120], [40, -70, 110]] });
+    person(r, 760, 960, 620, CP, { light: -1, lc: WARM, arms: [-16, 34, 14, 30] });
     glow(r, 1330, 520, 20, 340, 'rgba(210,180,120,.14)');
   },
 
@@ -260,7 +185,7 @@ const PLATES = {
   herface(r) {
     field(r, [[0, '#242a33'], [.6, '#161a20'], [1, '#0b0d11']]);
     glow(r, 760, 460, 40, 760, 'rgba(224,196,150,.16)');
-    womanFace(r, 880, 560, 250, '#8d7a68', { hair: '#181310', eye: '#efe6d8', mouth: .30, mouthCol: '#4a2320' });
+    womanFace(r, 880, 560, 250, '#8d7a68', { hair: '#181310', eye: '#efe6d8', mouth: .30, mouthCol: '#4a2320', lc: WARM });
   },
 
   // him at the inner door, asking
@@ -268,7 +193,7 @@ const PLATES = {
     field(r, [[0, '#232a33'], [.6, '#141920'], [1, '#0a0c10']]);
     floor(r, 800, '#241a11', '#0d0a07');
     door(r, 1180, 120, 420, 680, '#33251a', '#261a12', '#b8944f');
-    person(r, 760, 940, 640, '#0c0e12', { dir: 0, arms: [[-50, -120, -40]] });
+    person(r, 760, 940, 640, CP, { light: -1, lc: WARM, arms: [-12, 30, 10, 32] });
     glow(r, 1390, 480, 20, 320, 'rgba(200,180,140,.12)');
   },
 
@@ -278,7 +203,7 @@ const PLATES = {
     // two arms across his chest
     r.fill(HL([[560, 700], [800, 660], [960, 600]], 4), '#6b5849', { group: 'arm', dir: -14, maxR: 80, detail: 1.8, ...HAND() });
     r.fill(HL([[520, 780], [780, 720], [950, 640]], 4), '#61503f', { group: 'arm', dir: -16, maxR: 76, detail: 1.8, ...HAND() });
-    person(r, 1150, 980, 700, '#0b0d11', { dir: 0 });
+    person(r, 1150, 980, 700, CP, { light: -1, lc: COLD, f: -1 });
     glow(r, 620, 520, 40, 620, 'rgba(190,200,220,.12)');
   },
 
@@ -287,8 +212,8 @@ const PLATES = {
     field(r, [[0, '#0d0f13'], [.6, '#14110e'], [1, '#070607']]);
     r.fill(HR(700, 150, 540, 810, 4, 5), '#d8c39a', { group: 'hall', dir: 90, maxR: 60, detail: 1.4, ...HAND() });
     glow(r, 970, 520, 40, 760, 'rgba(255,232,180,.35)');
-    person(r, 806, 1010, 500, '#08090b', { dir: 0 });
-    person(r, 1140, 1010, 520, '#08090b', { dir: 0 });
+    person(r, 806, 1010, 520, BRO, { light: 1, lc: WARM, f: 1 });
+    person(r, 1140, 1010, 540, BRO, { light: -1, lc: WARM, f: 1 });
     r.fill(HE(972, 470, 74, 80, 0, 5), '#08090b', { group: 'fig', dir: 0, maxR: 70, detail: 2, ...HAND() });
     r.fill(HP([[898, 550], [1046, 550], [1092, 1010], [852, 1010]], 5, 4), '#08090b',
       { group: 'fig', dir: 90, maxR: 60, detail: 1.4, ...HAND() });
@@ -300,7 +225,7 @@ const PLATES = {
   baldhead(r) {
     field(r, [[0, '#100d0b'], [.55, '#1a1210'], [1, '#060505']]);
     glow(r, 1080, 460, 40, 900, 'rgba(236,176,96,.24)');
-    baldHead(r, 1310, 470, 232, '#6d5138', { shine: 'rgba(244,226,186,.5)' });
+    baldHead(r, 1310, 470, 232, '#7d5c3d', { shine: 'rgba(244,226,186,.5)', lc: DARK });
     r.fill(HP([[1090, 720], [1540, 700], [1600, 1080], [1040, 1080]], 6, 5), '#0d0b0a',
       { group: 'head', dir: 90, maxR: 60, detail: 1.4, ...HAND() });
   },
@@ -309,7 +234,7 @@ const PLATES = {
   hernod(r) {
     field(r, [[0, '#2a2119'], [.6, '#181410'], [1, '#0b0908']]);
     glow(r, 700, 520, 40, 700, 'rgba(232,196,140,.18)');
-    womanFace(r, 880, 560, 235, '#8f7d69', { hair: '#1a1410', eye: '#efe6d8', mouth: .36, mouthCol: '#5a3a30' });
+    womanFace(r, 880, 560, 235, '#8f7d69', { hair: '#1a1410', eye: '#efe6d8', mouth: .36, mouthCol: '#5a3a30', lc: WARM });
   },
 
   // the bag, coming out of the corner
@@ -328,9 +253,9 @@ const PLATES = {
     // the doorway they crowd round
     r.fill(HR(760, 180, 420, 700, 4, 5), '#0a0c0f', { group: 'door', dir: 90, maxR: 200, detail: 1.5, ...HAND() });
     glow(r, 970, 520, 30, 480, 'rgba(228,196,140,.20)');
-    neighbour(r, 620, 1000, 430, '#08090b');
-    neighbour(r, 1180, 1010, 450, '#08090b');
-    neighbour(r, 1420, 990, 400, '#08090b');
+    neighbour(r, 620, 1000, 430, NEI, { lc: COLD });
+    neighbour(r, 1180, 1010, 450, NEI, { lc: COLD });
+    neighbour(r, 1420, 990, 400, NEI, { lc: COLD });
   },
 
   // his hand takes the bag
@@ -365,7 +290,7 @@ const PLATES = {
   bagheld(r) {
     field(r, [[0, '#2a1f16'], [.6, '#191410'], [1, '#0b0908']]);
     glow(r, 960, 420, 40, 620, 'rgba(236,184,100,.22)');
-    person(r, 960, 1060, 700, '#0a0b0c', { dir: 0 });
+    person(r, 960, 1060, 700, CP, { light: 1, lc: WARM, arms: [-13, 26, 13, 26] });
     bag(r, 960, 560, 320, 220, '#6b5233', { open: false });
     r.fill(HL([[900, 640], [960, 600], [1020, 640]], 3), '#5d4530', { group: 'fig', dir: 0, maxR: 40, detail: 2, ...HAND() });
   },
@@ -374,13 +299,13 @@ const PLATES = {
   kick(r) {
     field(r, [[0, '#1d222a'], [.62, '#12151a'], [1, '#08090b']]);
     floor(r, 860, '#2b1d14', '#0d0906');
-    seated(r, 820, 838, 420, 170, '#4d3f4c');
+    seated(r, 820, 900, 380, 190, MAM, { lc: WARM });
     // the stool, tipped over
     r.fill(HP([[1230, 900], [1330, 872], [1352, 906], [1252, 934]], 3, 2), '#2a1d13',
       { group: 'stool', dir: -12, maxR: 30, detail: 2, ...HAND() });
     r.fill(HL([[1250, 924], [1236, 1012]], 2), '#241811', { group: 'stool', dir: 84, maxR: 30, detail: 2, ...HAND() });
     r.fill(HL([[1340, 912], [1352, 998]], 2), '#241811', { group: 'stool', dir: 82, maxR: 30, detail: 2, ...HAND() });
-    person(r, 560, 940, 420, '#0c0e12', { dx: 40, lean: 26, dir: -8 });
+    person(r, 560, 940, 640, BRO, { light: 1, lc: WARM, lean: 10, tilt: -.06 });
     // the boot, mid-arc
     r.fill(HP([[1690, 560], [1790, 600], [1420, 800], [1360, 742]], 6, 5), '#07080a',
       { group: 'kick', dir: 152, maxR: 60, detail: 1.6, ...HAND() });
@@ -393,22 +318,21 @@ const PLATES = {
     floor(r, 860, '#281c13', '#0c0906');
     r.fill(HR(120, 140, 420, 720, 4, 5), '#0a0c10', { group: 'door', dir: 90, maxR: 200, detail: 1.5, ...HAND() });
     glow(r, 330, 500, 30, 460, 'rgba(200,190,170,.14)');
-    person(r, 700, 960, 640, '#0c0e12', { dir: 0, arms: [[-60, -140, -110], [50, -130, 120]] });
-    seated(r, 1250, 880, 300, 120, '#4d3f4c');
+    person(r, 700, 960, 640, CP, { light: -1, lc: COLD, arms: [-20, 22, 18, 20] });
+    seated(r, 1250, 940, 280, 160, MAM, { lc: COLD });
   },
 
   // the stare: him against the window light, the others small behind
   stare(r) {
     field(r, [[0, '#1b2028'], [.62, '#10141a'], [1, '#07080a']]);
     shaft(r, [[0, 150], [300, 190], [300, 900], [0, 940]], 'rgba(150,178,210,.24)');
-    person(r, 520, 1010, 470, '#07080a', { dir: 0 });
-    person(r, 1420, 1010, 490, '#07080a', { dir: 0 });
-    person(r, 960, 1040, 760, '#080a0d', { dir: 0 });
+    person(r, 520, 1010, 470, BRO, { light: -1, lc: COLD });
+    person(r, 1420, 1010, 490, BRO, { light: -1, lc: COLD });
+    person(r, 960, 1040, 760, CP, { light: -1, lc: COLD });
     rim(r, 960, 1040, 760, 'rgba(168,194,224,.55)', -1);
     rim(r, 960, 1040, 760, 'rgba(168,194,224,.34)', 1);
-    const hw = 760 * .13, ey = 1040 - 760 + hw * .95;
-    r.fill(HE(960 - hw * .38, ey, 11, 7, 0, 1), '#e6eef8', { group: 'eyes', dir: 0, maxR: 10, detail: 2, ...HAND({ type: 2 }) });
-    r.fill(HE(960 + hw * .38, ey, 11, 7, 0, 1), '#e6eef8', { group: 'eyes', dir: 0, maxR: 10, detail: 2, ...HAND({ type: 2 }) });
+    r.fill(HE(960 - 22.8, 358.3, 11, 7, 0, 1), '#e6eef8', { group: 'eyes', dir: 0, maxR: 10, detail: 2, ...HAND({ type: 2 }) });
+    r.fill(HE(960 + 22.8, 358.3, 11, 7, 0, 1), '#e6eef8', { group: 'eyes', dir: 0, maxR: 10, detail: 2, ...HAND({ type: 2 }) });
   },
 
   // she pushes him back again
@@ -416,7 +340,7 @@ const PLATES = {
     field(r, [[0, '#212732'], [.6, '#12161d'], [1, '#090a0e']]);
     r.fill(HP([[480, 660], [780, 620], [980, 570]], 4, 3), { group: 'arm', dir: -14, maxR: 80, detail: 1.8, ...HAND() });
     r.fill(HP([[450, 750], [760, 690], [970, 610]], 4, 3), { group: 'arm', dir: -16, maxR: 76, detail: 1.8, ...HAND() });
-    person(r, 1180, 980, 700, '#0b0d11', { dir: 0 });
+    person(r, 1180, 980, 700, CP, { light: -1, lc: COLD, f: -1 });
     glow(r, 560, 500, 40, 620, 'rgba(190,200,220,.12)');
   },
 
@@ -425,8 +349,8 @@ const PLATES = {
     field(r, [[0, '#1f242d'], [.6, '#131720'], [1, '#0a0c10']]);
     floor(r, 880, '#251a11', '#0d0a07');
     stool(r, 1180, 900, 220, 210, '#2a1d13');
-    seated(r, 1180, 800, 260, 260, '#4a3c46');
-    person(r, 700, 960, 660, '#0c0e12', { dir: 0, arms: [[40, -60, 90]] });
+    seated(r, 1180, 900, 300, 240, MAM, { lc: WARM });
+    person(r, 700, 960, 660, CP, { light: 1, lc: WARM, arms: [8, 30, 16, 22] });
     glow(r, 1440, 500, 20, 380, 'rgba(200,180,140,.10)');
   },
 
@@ -443,9 +367,9 @@ const PLATES = {
   // the brothers, laughing
   bros(r) {
     field(r, [[0, '#171310'], [.55, '#130f0d'], [1, '#070606']]);
-    person(r, 620, 1040, 560, '#07080a', { dir: 0 });
-    person(r, 960, 1050, 580, '#07080a', { dir: 0 });
-    person(r, 1300, 1040, 550, '#07080a', { dir: 0 });
+    person(r, 620, 1040, 560, BRO, { light: -1, lc: WARM });
+    person(r, 960, 1050, 600, BALD, { light: 1, lc: WARM });
+    person(r, 1300, 1040, 550, BRO, { light: -1, lc: WARM });
     r.fill(HE(960, 620, 66, 72, 0, 5), '#07080a', { group: 'fig', dir: 0, maxR: 70, detail: 2, ...HAND() });
     tattoo(r, 700, 780, 46, '#201711');
     tattoo(r, 1320, 770, 46, '#201711');
@@ -455,11 +379,10 @@ const PLATES = {
   // "What did you say?" — darker now
   whatdid(r) {
     field(r, [[0, '#0d1014'], [.6, '#080a0d'], [1, '#040405']]);
-    person(r, 960, 1080, 800, '#06070a', { dir: 0 });
+    person(r, 960, 1080, 800, CP, { light: -1, lc: COLD });
     rim(r, 960, 1080, 800, 'rgba(140,165,200,.28)', -1);
-    const hw = 800 * .13, ey = 1080 - 800 + hw * .95;
-    r.fill(HE(960 - hw * .38, ey, 12, 8, 0, 1), '#e6eef8', { group: 'eyes', dir: 0, maxR: 11, detail: 2, ...HAND({ type: 2 }) });
-    r.fill(HE(960 + hw * .38, ey, 12, 8, 0, 1), '#e6eef8', { group: 'eyes', dir: 0, maxR: 11, detail: 2, ...HAND({ type: 2 }) });
+    r.fill(HE(960 - 24, 362.4, 12, 8, 0, 1), '#e6eef8', { group: 'eyes', dir: 0, maxR: 11, detail: 2, ...HAND({ type: 2 }) });
+    r.fill(HE(960 + 24, 362.4, 12, 8, 0, 1), '#e6eef8', { group: 'eyes', dir: 0, maxR: 11, detail: 2, ...HAND({ type: 2 }) });
     glow(r, 420, 560, 40, 620, 'rgba(140,165,200,.14)');
   },
 
@@ -491,19 +414,19 @@ const PLATES = {
   // "Kneel down and apologise to my mother."
   order(r) {
     field(r, [[0, '#0b0e12'], [.62, '#080a0d'], [1, '#040506']]);
-    flame(r, 960, 1080, 800, '#06070a');
+    flame(r, 960, 1080, 800, '#070910');
+    person(r, 960, 1080, 760, CP, { light: -1, lc: COLD });
     glow(r, 560, 560, 40, 700, 'rgba(120,150,190,.14)');
-    const hw = 800 * .13, ey = 1080 - 800 + hw * .95;
-    r.fill(HE(960 - hw * .38, ey, 13, 9, 0, 1), '#dfeaf6', { group: 'eyes', dir: 0, maxR: 12, detail: 2, ...HAND({ type: 2 }) });
-    r.fill(HE(960 + hw * .38, ey, 13, 9, 0, 1), '#dfeaf6', { group: 'eyes', dir: 0, maxR: 12, detail: 2, ...HAND({ type: 2 }) });
+    r.fill(HE(960 - 22.8, 398.3, 13, 9, 0, 1), '#dfeaf6', { group: 'eyes', dir: 0, maxR: 12, detail: 2, ...HAND({ type: 2 }) });
+    r.fill(HE(960 + 22.8, 398.3, 13, 9, 0, 1), '#dfeaf6', { group: 'eyes', dir: 0, maxR: 12, detail: 2, ...HAND({ type: 2 }) });
   },
 
   // the room gone cold: everyone frozen
   coldroom(r) {
     field(r, [[0, '#0a0d11'], [.62, '#070910'], [1, '#040507']]);
     floor(r, 870, '#1a1510', '#08080a');
-    person(r, 700, 1000, 520, '#07080a', { dir: 0 });
-    person(r, 1180, 1010, 540, '#07080a', { dir: 0 });
+    person(r, 700, 1000, 520, BRO, { light: -1, lc: COLD });
+    person(r, 1180, 1010, 540, BRO, { light: -1, lc: COLD });
     r.fill(HE(960, 640, 60, 66, 0, 4), '#07080a', { group: 'fig', dir: 0, maxR: 66, detail: 2, ...HAND() });
     glow(r, 960, 300, 60, 700, 'rgba(90,120,160,.10)');
   },
@@ -512,7 +435,7 @@ const PLATES = {
   baldangry(r) {
     field(r, [[0, '#1a0e0c'], [.55, '#140b09'], [1, '#070505']]);
     glow(r, 1000, 420, 40, 760, 'rgba(226,120,70,.22)');
-    baldHead(r, 1290, 460, 240, '#6a4d34', { shine: 'rgba(244,220,180,.42)' });
+    baldHead(r, 1290, 460, 240, '#7a5638', { shine: 'rgba(244,220,180,.42)', lc: BLOOD });
     r.fill(HP([[1080, 730], [1540, 710], [1600, 1080], [1030, 1080]], 6, 5), '#0c0a09',
       { group: 'head', dir: 90, maxR: 60, detail: 1.4, ...HAND() });
   },
@@ -521,7 +444,7 @@ const PLATES = {
   fistcome(r) {
     field(r, [[0, '#181114'], [.6, '#0f0a0c'], [1, '#060506']]);
     fist(r, 1080, 560, 420, '#4a3526', { group: 'fig' });
-    person(r, 480, 1000, 660, '#08090b', { dir: 0 });
+    person(r, 480, 1000, 660, CP, { light: 1, lc: BLOOD, f: -1 });
     glow(r, 1380, 420, 40, 620, 'rgba(220,140,90,.18)');
   },
 
@@ -532,7 +455,7 @@ const PLATES = {
     // the blur of the hit
     r.fill(HP([[880, 380], [1180, 440], [1240, 640], [900, 600]], 8, 6), 'rgba(226,196,150,.30)',
       { group: 'light', dir: 20, maxR: 120, detail: 1.2, ...HAND() });
-    person(r, 420, 1020, 680, '#08090b', { dir: 0 });
+    person(r, 420, 1020, 680, CP, { light: 1, lc: BLOOD, f: -1 });
     r.fill(HE(1180, 480, 88, 92, 0, 6), '#0a0b0c', { group: 'fig', dir: 0, maxR: 90, detail: 2, ...HAND() });
   },
 
@@ -541,8 +464,8 @@ const PLATES = {
     field(r, [[0, '#1b1218'], [.6, '#110b10'], [1, '#070508']]);
     r.fill(HP([[1560, 520], [1660, 570], [1180, 800], [1120, 730]], 6, 5), '#06070a',
       { group: 'kick', dir: 152, maxR: 70, detail: 1.6, ...HAND() });
-    person(r, 500, 1000, 700, '#0b0c10', { dir: 0, lean: 14 });
-    seated(r, 1420, 880, 300, 130, '#3b3038');
+    person(r, 500, 1000, 700, BRO, { light: 1, lc: BLOOD, lean: 12, tilt: .05 });
+    seated(r, 1420, 940, 300, 180, MAM, { lc: BLOOD });
     glow(r, 1300, 660, 30, 460, 'rgba(200,80,70,.18)');
   },
 
@@ -550,8 +473,8 @@ const PLATES = {
   balddown(r) {
     field(r, [[0, '#191113'], [.6, '#0f0b0d'], [1, '#060506']]);
     floor(r, 880, '#281b16', '#0b0909');
-    seated(r, 900, 880, 460, 200, '#3b3038');
-    baldHead(r, 700, 740, 120, '#5b422e');
+    seated(r, 900, 940, 420, 210, BALD, { lc: WARM });
+    baldHead(r, 700, 740, 120, '#6b4d33', { lc: WARM });
     glow(r, 600, 700, 30, 460, 'rgba(220,150,90,.14)');
   },
 
@@ -559,14 +482,14 @@ const PLATES = {
   heralarm(r) {
     field(r, [[0, '#232a33'], [.6, '#161a20'], [1, '#0b0d11']]);
     glow(r, 700, 480, 40, 700, 'rgba(224,190,150,.18)');
-    womanFace(r, 880, 560, 245, '#907c68', { hair: '#181310', eye: '#f2eade', mouth: .5, mouthCol: '#4a1c1a' });
+    womanFace(r, 880, 560, 245, '#907c68', { hair: '#181310', eye: '#f2eade', mouth: .5, mouthCol: '#4a1c1a', lc: BLOOD, open: .6 });
   },
 
   // the bald man roaring from the floor
   roar(r) {
     field(r, [[0, '#1e1010'], [.55, '#150c0c'], [1, '#070505']]);
     glow(r, 900, 560, 40, 620, 'rgba(230,130,80,.18)');
-    baldHead(r, 900, 520, 190, '#5f4530', { shine: 'rgba(240,210,170,.36)' });
+    baldHead(r, 900, 520, 190, '#6f4f33', { shine: 'rgba(240,210,170,.36)', lc: BLOOD });
     r.fill(HP([[740, 740], [1080, 720], [1140, 1080], [700, 1080]], 6, 5), '#0b0909',
       { group: 'head', dir: 90, maxR: 60, detail: 1.4, ...HAND() });
   },
@@ -574,10 +497,10 @@ const PLATES = {
   // they come at him
   rush(r) {
     field(r, [[0, '#171013'], [.6, '#0e0a0c'], [1, '#060506']]);
-    person(r, 420, 1060, 620, '#07080a', { dir: 4, lean: -14 });
-    person(r, 820, 1070, 640, '#07080a', { dir: 4, lean: -8 });
-    person(r, 1240, 1060, 620, '#07080a', { dir: 4, lean: 10 });
-    person(r, 1560, 1040, 580, '#07080a', { dir: 4, lean: 16 });
+    person(r, 420, 1060, 620, BRO, { light: 1, lc: BLOOD, lean: -10, tilt: -.06 });
+    person(r, 820, 1070, 640, BRO, { light: 1, lc: BLOOD, lean: -6, tilt: -.03 });
+    person(r, 1240, 1060, 620, BRO, { light: -1, lc: BLOOD, lean: 8, tilt: .05 });
+    person(r, 1560, 1040, 580, BRO, { light: -1, lc: BLOOD, lean: 11, tilt: .08 });
     glow(r, 960, 300, 40, 620, 'rgba(180,90,80,.12)');
   },
 
@@ -585,8 +508,8 @@ const PLATES = {
   whitefl(r) {
     field(r, [[0, '#c9d4e2'], [.55, '#a8b6c8'], [1, '#6f7c90']]);
     glow(r, 960, 520, 40, 900, 'rgba(255,255,255,.55)');
-    person(r, 700, 1060, 620, 'rgba(28,34,44,.55)', { dir: 0 });
-    person(r, 1180, 1070, 640, 'rgba(28,34,44,.55)', { dir: 0 });
+    person(r, 700, 1060, 620, 'rgba(28,34,44,.55)', { light: -1, lc: WHITE });
+    person(r, 1180, 1070, 640, 'rgba(28,34,44,.55)', { light: 1, lc: WHITE });
     glow(r, 300, 300, 20, 320, 'rgba(255,255,255,.35)');
     glow(r, 1640, 780, 20, 320, 'rgba(255,255,255,.30)');
   },
@@ -595,7 +518,7 @@ const PLATES = {
   baldshock(r) {
     field(r, [[0, '#1b1114'], [.55, '#120b0e'], [1, '#070506']]);
     glow(r, 1180, 460, 40, 780, 'rgba(200,170,190,.18)');
-    baldHead(r, 1290, 480, 230, '#63482f', { shine: 'rgba(238,214,180,.40)' });
+    baldHead(r, 1290, 480, 230, '#745334', { shine: 'rgba(238,214,180,.40)', lc: DARK });
     r.fill(HP([[1080, 740], [1540, 720], [1600, 1080], [1030, 1080]], 6, 5), '#0b090a',
       { group: 'head', dir: 90, maxR: 60, detail: 1.4, ...HAND() });
   },
@@ -603,11 +526,10 @@ const PLATES = {
   // "Apologise to my mother!"
   command(r) {
     field(r, [[0, '#0a0d10'], [.62, '#070a0c'], [1, '#040506']]);
-    person(r, 960, 1080, 800, '#06070a', { dir: 0 });
+    person(r, 960, 1080, 800, CP, { light: -1, lc: COLD });
     rim(r, 960, 1080, 800, 'rgba(150,175,210,.40)', -1);
-    const hw = 800 * .13, ey = 1080 - 800 + hw * .95;
-    r.fill(HE(960 - hw * .38, ey, 14, 9, 0, 1), '#e8f0fa', { group: 'eyes', dir: 0, maxR: 13, detail: 2, ...HAND({ type: 2 }) });
-    r.fill(HE(960 + hw * .38, ey, 14, 9, 0, 1), '#e8f0fa', { group: 'eyes', dir: 0, maxR: 13, detail: 2, ...HAND({ type: 2 }) });
+    r.fill(HE(960 - 24, 362.4, 14, 9, 0, 1), '#e8f0fa', { group: 'eyes', dir: 0, maxR: 13, detail: 2, ...HAND({ type: 2 }) });
+    r.fill(HE(960 + 24, 362.4, 14, 9, 0, 1), '#e8f0fa', { group: 'eyes', dir: 0, maxR: 13, detail: 2, ...HAND({ type: 2 }) });
     glow(r, 400, 620, 40, 640, 'rgba(120,150,190,.14)');
   },
 
@@ -615,7 +537,7 @@ const PLATES = {
   kneel(r) {
     field(r, [[0, '#0c0f13'], [.62, '#080b0e'], [1, '#050607']]);
     floor(r, 880, '#1c1712', '#090809');
-    person(r, 700, 1040, 700, '#06070a', { dir: 0 });
+    person(r, 700, 1040, 700, BRO, { light: -1, lc: WARM });
     // two of them, down on their knees
     for (const [x, y] of [[1180, 900], [1480, 910]]) {
       r.fill(HP([[x - 110, y - 150], [x + 110, y - 140], [x + 130, y], [x - 130, y]], 5, 4), '#07080a',
@@ -627,7 +549,7 @@ const PLATES = {
   // "Get lost!" — the hand that waves them out
   wave(r) {
     field(r, [[0, '#0b0e11'], [.6, '#080a0c'], [1, '#040506']]);
-    person(r, 700, 1060, 760, '#06070a', { dir: 0, arms: [[60, -160, 130]] });
+    person(r, 700, 1060, 760, CP, { light: -1, lc: COLD, arms: [4, 34, 30, -26] });
     glow(r, 1400, 520, 30, 620, 'rgba(120,150,190,.12)');
   },
 
@@ -638,9 +560,9 @@ const PLATES = {
     // the lane, going down to the left
     r.fill(HP([[0, 700], [1920, 820], [1920, 1080], [0, 1080]], 7, 6), '#171310',
       { group: 'floor', dir: -8, fallback: -8, maxR: 80, detail: 1.4, ...HAND() });
-    person(r, 700, 980, 460, '#0a0b0d', { dir: 0, lean: -12 });
-    person(r, 1080, 950, 440, '#0a0b0d', { dir: 0, lean: -16 });
-    person(r, 1440, 930, 430, '#0a0b0d', { dir: 0, lean: -20 });
+    person(r, 700, 980, 470, BRO, { light: 1, lc: COLD, lean: -9, tilt: .09 });
+    person(r, 1080, 950, 450, BRO, { light: 1, lc: COLD, lean: -12, tilt: .12 });
+    person(r, 1440, 930, 440, BRO, { light: 1, lc: COLD, lean: -15, tilt: .15 });
     glow(r, 300, 420, 30, 520, 'rgba(190,205,225,.14)');
   },
 };

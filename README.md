@@ -49,7 +49,8 @@ tells the story around him; his mother and Bald Head have theirs.
 ## How it is built
 
 - `engine/` — the impasto engine (reference drawing → knife strokes → WebGL paint)
-- `scenes/story.js` — the plates, the figures, the light
+- `scenes/story.js` — the plates: the rooms, the door, the money, the light
+- `scenes/figures.js` — the cast: shoulders, coats, arms, heads with hair, lit from one side
 - `scenes/lines.js` — the chapter's dialogue, in the order the chapter says it
 - `scenes/cards.js` — the title and the chapter lines
 - `timeline.js` — the cut list, the music grid; every cut and every sound sits on it
@@ -58,7 +59,9 @@ tells the story around him; his mother and Bald Head have theirs.
 - `tools/` — the timeline dump, the chapter dump, the subtitle cues, the voices, the slice renderer
 
 Render locally with `sh build.sh` (one machine, six workers) or on GitHub Actions, where the
-film is painted by twenty runners at once — twenty slices of frames, joined at the end.
+film is painted by twenty runners at once — twenty slices of frames, joined at the end. The
+run also checks the film there (loudness, black frames, a contact sheet) and publishes the
+results, so nothing heavy has to run on your own machine.
 
 ## Credits
 
