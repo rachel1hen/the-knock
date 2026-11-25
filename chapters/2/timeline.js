@@ -12,8 +12,8 @@
 // chapter's own turns (the knock, the money, the kick, the sneer, the demand,
 // the fight, the apology).
 
-import { LINES } from './scenes/lines.gen.js';
-import { ACTS } from './scenes/acts.js';
+import { LINES } from './lines.gen.js';
+import { ACTS } from './acts.js';
 
 export const G = { t0: 0.5, bpm: 66, beats: 4 };
 export const BEAT = 60 / G.bpm;          // 0.909091 s

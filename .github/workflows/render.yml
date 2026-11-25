@@ -9,16 +9,74 @@ on:
       - 'README.md'
       - 'CREDITS'
       - 'TREATMENT.md'
+      - 'subtitles_en.srt'
+      - '.github/workflows/**'
+      - 'docs/**'
   workflow_dispatch:
+    inputs:
+      chapter:
+        description: 'Chapter to render, e.g. 2'
+        required: true
+        default: '2'
+        type: string
+
+permissions:
+  contents: read
 
 concurrency:
-  group: render-${{ github.ref }}
+  # the chapter is part of the group: a chapter three render must not cancel a
+  # chapter two render that is already painting
+  group: render-${{ github.ref }}-${{ inputs.chapter || 'push' }}
   cancel-in-progress: true
 
 jobs:
+  prep:
+    name: pick the chapter
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      chapter: ${{ steps.pick.outputs.chapter }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pick
+        env:
+          REQ: ${{ inputs.chapter }}
+        run: |
+          set -euo pipefail
+          if [ -n "$REQ" ]; then chapter="$REQ"; else chapter="$(cat chapters/current.txt)"; fi
+          case "$chapter" in
+            ''|*[!0-9]*) echo "::error::the chapter must be a number, got '$chapter'"; exit 1 ;;
+          esac
+          [ -d "chapters/$chapter" ] || { echo "::error::there is no chapters/$chapter"; exit 1; }
+          [ -f "source/chapter_$chapter.txt" ] || { echo "::error::there is no source/chapter_$chapter.txt"; exit 1; }
+          echo "chapter=$chapter" >> "$GITHUB_OUTPUT"
+
+  check:
+    name: the chapter holds together
+    needs: prep
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CHAPTER: ${{ needs.prep.outputs.chapter }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: rebuild what the chapter is made of
+        run: |
+          node tools/select_chapter.mjs "$CHAPTER"
+          node tools/dump_lines.mjs "$CHAPTER"
+      - name: check it
+        run: node tools/check_chapter.mjs "$CHAPTER"
+
   audio:
     name: score and foley
+    needs: [prep, check]
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CHAPTER: ${{ needs.prep.outputs.chapter }}
+      LIB: ${{ github.workspace }}/lemo-opuscar
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,9 +86,12 @@ jobs:
       - run: pip install --quiet numpy soundfile
       - name: the library (for the subtitle exporter)
         run: git clone --depth 1 https://github.com/lemomo-ai/lemo-opuscar.git lemo-opuscar
+      - name: rebuild what the chapter is made of
+        run: |
+          node tools/select_chapter.mjs "$CHAPTER"
+          node tools/dump_lines.mjs "$CHAPTER"
       - name: score and mix
         run: |
-          node tools/dump_lines.mjs
           node tools/dump_timeline.mjs
           python music/score.py
           python mix.py
@@ -42,10 +103,8 @@ jobs:
           M=https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0
           curl -L --fail --retry 3 -o lemo-opuscar/core/tts/kokoro-v1.0.onnx $M/kokoro-v1.0.onnx
           curl -L --fail --retry 3 -o lemo-opuscar/core/tts/voices-v1.0.bin $M/voices-v1.0.bin
-          python tools/make_voices.py
+          python "chapters/$CHAPTER/voices.py"
           python mix.py
-        env:
-          LIB: ${{ github.workspace }}/lemo-opuscar
       - name: subtitle cues
         run: |
           node tools/dump_cues.mjs
@@ -53,20 +112,32 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: audio
-          path: out/
-          include-hidden-files: false
+          path: |
+            out/mix.wav
+            out/subtitles_en.srt
+          retention-days: 3
 
   slices:
     name: paint slice ${{ matrix.slice }}
+    needs: [prep, check]
     runs-on: ubuntu-latest
+    timeout-minutes: 330
     strategy:
       fail-fast: false
       matrix:
         slice: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    env:
+      CHAPTER: ${{ needs.prep.outputs.chapter }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
+      - name: rebuild what the chapter is made of
+        # without this the slices would paint the chapter as it is committed
+        # while the audio job voices the chapter that was asked for
+        run: |
+          node tools/select_chapter.mjs "$CHAPTER"
+          node tools/dump_lines.mjs "$CHAPTER"
       - name: ffmpeg and the headless browser
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
@@ -87,11 +158,13 @@ jobs:
         with:
           name: seg-${{ matrix.slice }}
           path: out/seg_${{ matrix.slice }}.mp4
+          retention-days: 3
 
   join:
     name: join the slices
-    needs: [audio, slices]
+    needs: [prep, check, audio, slices]
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: ffmpeg and the library
@@ -123,16 +196,26 @@ jobs:
           sh lemo-opuscar/core/render/mux.sh out/video.mp4 artifacts/audio/mix.wav the-knock.mp4 24 0
           ffmpeg -v error -y -ss 20 -i the-knock.mp4 -frames:v 1 -q:v 2 poster.jpg
           ffprobe -v error -show_entries format=duration -show_entries stream=codec_name,width,height -of default=noprint_wrappers=1 the-knock.mp4
+      - name: the picture and the sound are the same chapter
+        # the cheapest tripwire against a chapter that does not match itself
+        run: |
+          V=$(ffprobe -v error -show_entries format=duration -of csv=p=0 the-knock.mp4)
+          A=$(ffprobe -v error -show_entries format=duration -of csv=p=0 artifacts/audio/mix.wav)
+          echo "video ${V}s  audio ${A}s"
+          D=$(awk -v v="$V" -v a="$A" 'BEGIN{d=v-a; if(d<0)d=-d; print d}')
+          awk -v d="$D" 'BEGIN{exit (d>5.0)?1:0}' || { echo "::error::the picture and the sound differ by ${D}s"; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
           name: the-knock
           path: |
             the-knock.mp4
             poster.jpg
+          retention-days: 3
       - uses: actions/upload-artifact@v4
         with:
           name: subtitles
           path: artifacts/audio/subtitles_en.srt
+          retention-days: 3
       - name: check the film
         run: |
           mkdir -p out/checks
@@ -150,3 +233,4 @@ jobs:
         with:
           name: checks
           path: out/checks/
+          retention-days: 3

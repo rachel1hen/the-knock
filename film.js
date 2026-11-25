@@ -1,18 +1,17 @@
-// "The Knock" — chapter two of the story, one video, painted every frame.
+// "The Knock" — one chapter of the story, one video, painted every frame.
 //
-// The cut list is the chapter: every line of source/chapter_2.txt is a shot,
+// The cut list is the chapter: every line of source/chapter_N.txt is a shot,
 // with the spoken words painted into the picture in the film's own type and the
 // narrated lines carried by the picture. Nothing is skipped, and the film's
 // length is the length of the chapter.
 //
-// The score is one held chord that moves with the story; the light changes with
-// each of the film's four rooms (cold, warm, blood, dark).
+// The chapter itself lives under chapters/N/; chapters/current.js says which
+// one this render is. The score is one held chord that moves with the story;
+// the light changes with each of the film's four rooms (cold, warm, blood, dark).
 
 import { Impasto } from './engine/impasto.js';
-import { T, BEATS, END, DUR } from './timeline.js';
-import { buildShots } from './scenes/story.js';
+import { T, BEATS, END, DUR, CARD, LINES, buildShots } from './chapters/current.js';
 import { buildCard, buildLine } from './scenes/cards.js';
-import { LINES } from './scenes/lines.gen.js';
 import { clamp, lerp, ss, seg, eo, hash } from './scenes/common.js';
 
 const NEVER = 1e6;
@@ -32,9 +31,9 @@ export async function setup(canvas) {
   B = {};
 
   // the title and the end card
-  const head = buildCard('THE KNOCK', 'chapter two of the story', { seed: 5, titleY: 520 });
+  const head = buildCard(CARD.head.title, CARD.head.sub, { seed: 5, titleY: 520 });
   P.head = { bg: up(head.bg, 1920, 1080), type: up(head.type, 1920, 1080) };
-  const tail = buildCard('THE KNOCK', 'an impasto palette-knife study', { seed: 7, titleY: 520, glow: '#2a1d12' });
+  const tail = buildCard(CARD.tail.title, CARD.tail.sub, { seed: 7, titleY: 520, glow: '#2a1d12' });
   P.tail = { bg: up(tail.bg, 1920, 1080), type: up(tail.type, 1920, 1080) };
 
   // every line of the chapter gets its plate, and its type if it is spoken
@@ -53,7 +52,7 @@ export async function setup(canvas) {
   credits = document.createElement('div');
   credits.style.cssText = 'position:fixed;left:0;right:0;top:930px;text-align:center;font-family:"Cormorant SC",serif;color:#cbbb9c;letter-spacing:.08em;opacity:0;line-height:1.5;text-shadow:0 2px 6px rgba(0,0,0,.7)';
   credits.innerHTML = '<div style="font-size:26px;font-style:italic;font-family:\'Cormorant Garamond\',serif;letter-spacing:.03em">painted and scored in code</div>' +
-    '<div style="font-size:19px;margin-top:14px;color:#8d8271">type: Cormorant (OFL) · text adapted from chapter two</div>';
+    '<div style="font-size:19px;margin-top:14px;color:#8d8271">' + CARD.credits + '</div>';
   document.body.appendChild(credits);
 
   window.DUR = END;

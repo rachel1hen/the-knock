@@ -4,3 +4,4 @@ reviews/
 *.log
 # the painted film is 400 MB of output; the release carries it, git does not
 the-knock.mp4
+__pycache__/

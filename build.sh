@@ -9,6 +9,7 @@ export LIB
 PY="$LIB/.venv/bin/python"
 [ -x "$PY" ] || PY=python3
 cd "$HERE"
+node tools/select_chapter.mjs                       # the chapter -> chapters/current.js
 node tools/dump_timeline.mjs                        # the grid -> out/timeline.json
 node tools/dump_lines.mjs                           # the chapter -> out/lines.json + scenes/lines.gen.js
 "$PY" music/score.py                                # the score

@@ -1,0 +1,159 @@
+name: author-chapter
+
+# Claude Code writes the next chapter's code on a CI runner, so the laptop
+# stays idle. The agent never holds a write credential: it runs with
+# contents: read and no persisted token, and a second job - which never runs
+# Claude and never sees the model key - opens a draft pull request.
+
+on:
+  workflow_dispatch:
+    inputs:
+      chapter:
+        description: 'Chapter to author, e.g. 3'
+        required: true
+        type: string
+      model:
+        description: 'The NVIDIA model that writes the chapter'
+        required: false
+        default: 'moonshotai/kimi-k3.1-pro'
+        type: string
+
+permissions:
+  contents: read          # nothing in this file may be able to push
+
+concurrency:
+  group: author-chapter-${{ github.ref }}-${{ inputs.chapter }}
+  cancel-in-progress: true
+
+jobs:
+  author:
+    name: author (no git write token anywhere)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      chapter: ${{ steps.setup.outputs.chapter }}
+    env:
+      CHAPTER: ${{ inputs.chapter }}
+      MODEL: ${{ inputs.model }}
+      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+      NIM_MODEL: ${{ inputs.model }}
+      # Claude Code talks to the local translator, which talks to NVIDIA
+      ANTHROPIC_BASE_URL: http://127.0.0.1:8765
+      ANTHROPIC_AUTH_TOKEN: local
+      ANTHROPIC_API_KEY: local
+      ANTHROPIC_DEFAULT_OPUS_MODEL: ${{ inputs.model }}
+      ANTHROPIC_DEFAULT_SONNET_MODEL: ${{ inputs.model }}
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: ${{ inputs.model }}
+      CLAUDE_CODE_SUBAGENT_MODEL: ${{ inputs.model }}
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: 1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false   # the token never enters .git/config
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - id: setup
+        env:
+          REQ: ${{ inputs.chapter }}
+        run: |
+          set -euo pipefail
+          case "$REQ" in ''|*[!0-9]*) echo "::error::the chapter must be a number"; exit 1 ;; esac
+          echo "chapter=$REQ" >> "$GITHUB_OUTPUT"
+      - name: the NVIDIA key must be there
+        run: |
+          if [ -z "$NVIDIA_API_KEY" ]; then
+            echo "::error::the repository secret NVIDIA_API_KEY is not set (get a key at https://build.nvidia.com)"
+            exit 1
+          fi
+      - name: install claude code (pinned)
+        run: npm install -g @anthropic-ai/claude-code@2.1.153
+      - name: the translator between Anthropic and NVIDIA
+        run: |
+          nohup python tools/nim_proxy.py > "$RUNNER_TEMP/nim_proxy.log" 2>&1 &
+          for i in $(seq 1 20); do
+            if curl -sf http://127.0.0.1:8765/v1/models > /dev/null; then break; fi
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8765/v1/models > /dev/null || { echo "::error::the proxy did not start"; cat "$RUNNER_TEMP/nim_proxy.log"; exit 1; }
+          echo "the proxy is up"
+      - name: author the chapter
+        run: |
+          umask 077
+          sed "s/@CHAPTER@/$CHAPTER/g" .github/authoring/chapter_prompt.md > "$RUNNER_TEMP/prompt.md"
+          claude -p "$(cat "$RUNNER_TEMP/prompt.md")" \
+            --output-format json \
+            --max-turns 40 \
+            --permission-mode acceptEdits \
+            --allowedTools "Read,Write,Edit,Grep,Glob,Bash(node:tools/check_chapter.mjs:*),Bash(node:tools/dump_lines.mjs:*),Bash(node:tools/select_chapter.mjs:*),Bash(node:tools/dump_timeline.mjs:*),Bash(git status:*),Bash(git diff:*),Bash(mkdir:*),Bash(ls:*)" \
+            > claude-result.json 2> agent-stderr.log || {
+              echo "::error::claude code failed:"
+              tail -40 agent-stderr.log
+              exit 1
+            }
+      - name: the chapter must hold together
+        run: |
+          node tools/dump_lines.mjs "$CHAPTER"
+          node tools/check_chapter.mjs "$CHAPTER"
+      - name: collect only the chapter's own files
+        run: |
+          git add -A -- "source/chapter_${CHAPTER}.txt" "chapters/${CHAPTER}" AGENTS.md .github/authoring
+          git diff --cached --binary -- "source/chapter_${CHAPTER}.txt" "chapters/${CHAPTER}" > "$RUNNER_TEMP/chapter-$CHAPTER.patch"
+          {
+            echo "chapter: $CHAPTER"
+            echo
+            echo "files:"
+            git diff --cached --name-only -- "source/chapter_${CHAPTER}.txt" "chapters/${CHAPTER}"
+            echo
+            echo "stat:"
+            git diff --cached --stat -- "source/chapter_${CHAPTER}.txt" "chapters/${CHAPTER}"
+          } > "$RUNNER_TEMP/chapter-$CHAPTER.txt"
+      # Do NOT upload claude-result.json or agent-stderr.log: the transcript
+      # holds every tool result, which may hold the key, and artifacts on a
+      # public repo are world readable. GitHub masks the exact secret value,
+      # not a copy of it in another shape.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chapter-patch
+          path: ${{ runner.temp }}/chapter-*.patch
+          retention-days: 7
+
+  publish:
+    name: open the draft pull request
+    needs: author
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CHAPTER: ${{ needs.author.outputs.chapter }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main          # always branch from main, never from the dispatch ref
+      - uses: actions/download-artifact@v4
+        with:
+          name: chapter-patch
+          path: patch
+      - name: apply the patch
+        run: |
+          git config user.name  'the-knock bot'
+          git config user.email 'bot@users.noreply.github.com'
+          git apply --check "patch/chapter-$CHAPTER.patch"
+          git apply --index "patch/chapter-$CHAPTER.patch"
+          node tools/check_chapter.mjs "$CHAPTER"
+      - name: push the branch
+        run: |
+          BR="agent/chapter-$CHAPTER"
+          [ "$BR" = main ] && { echo '::error::refusing to push to main'; exit 1; }
+          git checkout -b "$BR"
+          git commit -m "chapter $CHAPTER: agent draft (not for merge without review)"
+          git push origin "$BR:refs/heads/$BR"
+      - name: open the DRAFT pull request
+        run: |
+          gh pr create --draft --base main --head "agent/chapter-$CHAPTER" \
+            --title "chapter $CHAPTER (agent draft)" \
+            --body-file "patch/chapter-$CHAPTER.txt"

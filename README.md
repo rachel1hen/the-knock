@@ -49,19 +49,31 @@ tells the story around him; his mother and Bald Head have theirs.
 ## How it is built
 
 - `engine/` — the impasto engine (reference drawing → knife strokes → WebGL paint)
-- `scenes/story.js` — the plates: the rooms, the door, the money, the light
-- `scenes/figures.js` — the cast: shoulders, coats, arms, heads with hair, lit from one side
-- `scenes/lines.js` — the chapter's dialogue, in the order the chapter says it
-- `scenes/cards.js` — the title and the chapter lines
-- `timeline.js` — the cut list, the music grid; every cut and every sound sits on it
-- `music/score.py`, `mix.py` — the score and the foley, pure numpy
+- `scenes/` — what every chapter shares: the wobbly hand (`common.js`), the cast
+  (`figures.js`), the title cards (`cards.js`)
 - `film.js` — the chapter's camera and the light through each shot
-- `tools/` — the timeline dump, the chapter dump, the subtitle cues, the voices, the slice renderer
+- `music/score.py`, `mix.py` — the score and the foley, pure numpy
+- `tools/` — the timeline dump, the chapter dump, the subtitle cues, the slice renderer,
+  the chapter picker and the chapter check
+- `chapters/N/` — one folder per chapter, self-contained: `card.js`, `acts.js` (the beats),
+  `timeline.js` (the clock), `plates.js` (the drawings), `voices.py` (who speaks),
+  `lines.gen.js` (generated from `source/chapter_N.txt`, never written by hand)
+- `chapters/current.js` — generated; the one pointer every film-wide tool reads
 
 Render locally with `sh build.sh` (one machine, six workers) or on GitHub Actions, where the
 film is painted by twenty runners at once — twenty slices of frames, joined at the end. The
 run also checks the film there (loudness, black frames, a contact sheet) and publishes the
 results, so nothing heavy has to run on your own machine.
+
+## Making another chapter
+
+`source/chapter_N.txt` in, `chapters/N/` out — every line of the text becomes a shot, and
+`tools/check_chapter.mjs N` checks the chapter the way a render would. To author a chapter's
+code without touching your machine, run the `author-chapter` workflow: it starts Claude Code
+on a runner behind a translator (`tools/nim_proxy.py`) that points it at NVIDIA's free hosted
+models, and the only thing it can produce is a draft pull request with the chapter's own
+files — a person reads it before anything is filmed. It needs a free key from
+build.nvidia.com in the `NVIDIA_API_KEY` repository secret.
 
 ## Credits
 

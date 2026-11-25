@@ -2,7 +2,7 @@
 // .srt carries exactly the words that are on screen, timed to the cuts.
 //   node tools/dump_cues.mjs
 import fs from 'fs';
-const { BEATS } = await import('../timeline.js');
+const { BEATS } = await import('../chapters/current.js');
 
 const cues = [];
 for (const b of BEATS) {

@@ -1,7 +1,7 @@
 // export the music grid, the foley times and the cut list for the Python
 // score and mix
 import fs from 'fs';
-const m = await import('../timeline.js');
+const m = await import('../chapters/current.js');
 const out = new URL('../out/', import.meta.url);
 fs.mkdirSync(out, { recursive: true });
 fs.writeFileSync(new URL('timeline.json', out), JSON.stringify({

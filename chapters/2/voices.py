@@ -7,11 +7,11 @@
 # agree: the voice starts when the line's picture has settled and stops before
 # the cut.
 #
-#   python tools/make_voices.py            # write out/voice/*.wav + out/narration.json
+#   python chapters/2/voices.py            # write out/voice/*.wav + out/narration.json
 import json, os, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(HERE)
+ROOT = os.path.dirname(os.path.dirname(HERE))
 LIB = os.environ.get('LIB', os.path.expanduser('~/lemo-opuscar'))
 OUT = os.path.join(ROOT, 'out', 'voice')
 
