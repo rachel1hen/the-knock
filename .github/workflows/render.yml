@@ -3,6 +3,8 @@ name: render
 on:
   push:
     branches: [main]
+    # Only a change to the film itself should spend 1.7 hours of CI. The
+    # operating scripts, the readme and the workflows are not the film.
     paths-ignore:
       - 'the-knock.mp4'
       - 'poster.jpg'
@@ -10,7 +12,14 @@ on:
       - 'CREDITS'
       - 'TREATMENT.md'
       - 'subtitles_en.srt'
+      - 'AGENTS.md'
       - '.github/workflows/**'
+      - '.github/authoring/**'
+      - 'tools/gh_*.py'
+      - 'tools/check_chapter.mjs'
+      - 'tools/select_chapter.mjs'
+      - 'tools/nim_proxy.py'
+      - 'tools/test_nim_proxy.py'
       - 'docs/**'
   workflow_dispatch:
     inputs:
