@@ -1,0 +1,135 @@
+name: publish-release
+
+# Ship the film. The mp4 is built by the render workflow on a runner; this
+# workflow takes that run's artifacts and makes a release from them, so the
+# 400 MB never travels through anyone's laptop.
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'The render run to publish (blank = the latest green one)'
+        required: false
+        default: ''
+        type: string
+      tag:
+        description: 'Tag for the release'
+        required: false
+        default: 'v0.1.0'
+        type: string
+      title:
+        description: 'Release title'
+        required: false
+        default: 'The Knock - chapter two'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: publish the film
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pick
+        run: |
+          set -euo pipefail
+          RUN="${{ inputs.run_id }}"
+          if [ -z "$RUN" ]; then
+            RUN=$(gh run list --workflow render --status success --limit 1 \
+                  --json databaseId --jq '.[0].databaseId')
+          fi
+          [ -n "$RUN" ] || { echo '::error::no green render run to publish'; exit 1; }
+          echo "run=$RUN" >> "$GITHUB_OUTPUT"
+          echo "publishing render run $RUN"
+      - name: take the film from that run
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.pick.outputs.run }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: the-knock
+          path: film
+      - name: take the subtitles
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ steps.pick.outputs.run }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: subtitles
+          path: subs
+      - name: what is in the box
+        run: |
+          find film subs -type f -printf '%10s  %p\n' | sort -k2
+      - name: the release
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          TITLE="${{ inputs.title }}"
+          NOTES=$(cat <<'EOF'
+          Chapter two of *The Knock*: a cold room at night, one window, a knock
+          at the door, money on the floor, and a kick.
+
+          Everything on screen is painted in code - a flat illustration on a
+          canvas, then thousands of palette-knife strokes laid over it, so a
+          knife never crosses from one form into the next. The dialogue is
+          painted into the picture in Cormorant Garamond; `subtitles_en.srt`
+          carries the same words on the same clock.
+
+          Built and rendered on GitHub Actions. No video model, no samples,
+          nothing traced.
+          EOF
+          )
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" --clobber \
+              film/the-knock.mp4 subs/subtitles_en.srt film/poster.jpg
+          else
+            gh release create "$TAG" \
+              --title "$TITLE" \
+              --notes "$NOTES" \
+              film/the-knock.mp4 \
+              subs/subtitles_en.srt \
+              film/poster.jpg
+          fi
+          gh release view "$TAG" --json url,tagName,name \
+            --jq '"release: " + .url'
+      - id: cipher
+        run: echo "b64=$(base64 -w0 film/poster.jpg)" >> "$GITHUB_OUTPUT"
+      - name: the poster in the repository matches the film
+        # the tracked poster.jpg is what a visitor sees on the repo page
+        env:
+          POSTER_B64: ${{ steps.cipher.outputs.b64 }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os, urllib.request
+
+          token = os.environ["GH_TOKEN"]
+          url = "https://api.github.com/repos/rachel1hen/the-knock/contents/poster.jpg"
+          headers = {
+              "Authorization": "Bearer " + token,
+              "Accept": "application/vnd.github+json",
+              "Content-Type": "application/json",
+          }
+          sha = None
+          try:
+              req = urllib.request.Request(url, headers=headers)
+              sha = json.load(urllib.request.urlopen(req))["sha"]
+          except Exception:
+              pass
+          body = {
+              "message": "The poster from the published film",
+              "content": os.environ["POSTER_B64"],
+          }
+          if sha:
+              body["sha"] = sha
+          req = urllib.request.Request(
+              url, data=json.dumps(body).encode(), headers=headers, method="PUT"
+          )
+          urllib.request.urlopen(req, timeout=60)
+          print("poster.jpg updated")
+          PY
+      - id: cipher
+        run: echo "b64=$(base64 -w0 film/poster.jpg)" >> "$GITHUB_OUTPUT"

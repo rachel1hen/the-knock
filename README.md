@@ -2,6 +2,10 @@
 
 *An impasto palette-knife film. One chapter of the story, one video, eight and a half minutes.*
 
+**Watch it:** [the release](https://github.com/rachel1hen/the-knock/releases) — the film, the
+subtitles, and the poster. Every frame is painted in code on GitHub Actions; the mp4 is
+never on anyone's machine.
+
 Everything on screen is painted in code. The engine draws a flat, value-planned illustration
 (Canvas2D), then lays thousands of palette-knife strokes over it — coarse first, fine only
 where the paint still differs from the drawing. The strokes know the shapes: a knife never
