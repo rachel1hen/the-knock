@@ -99,38 +99,44 @@ jobs:
       - id: cipher
         # the base64 goes to a file, not an environment variable: a 200 KB
         # value in the environment makes the argument list too long
-        run: base64 -w0 film/poster.jpg > poster.b64
-      - name: the poster in the repository matches the film
-        # the tracked poster.jpg is what a visitor sees on the repo page
+        run: |
+          base64 -w0 film/poster.jpg > poster.b64
+          base64 -w0 subs/subtitles_en.srt > subtitles.b64
+      - name: the repository shows this film, not an older one
+        # poster.jpg is what a visitor sees on the repo page; the .srt is the
+        # film the release carries. Both must be the ones just published.
         run: |
           set -euo pipefail
           python - <<'PY'
-          import base64, json, os, urllib.request
+          import json, os, urllib.request
 
           token = os.environ["GH_TOKEN"]
-          url = "https://api.github.com/repos/rachel1hen/the-knock/contents/poster.jpg"
+          base = "https://api.github.com/repos/rachel1hen/the-knock/contents/"
           headers = {
               "Authorization": "Bearer " + token,
               "Accept": "application/vnd.github+json",
               "Content-Type": "application/json",
           }
-          sha = None
-          try:
-              req = urllib.request.Request(url, headers=headers)
-              sha = json.load(urllib.request.urlopen(req))["sha"]
-          except Exception:
-              pass
-          with open("poster.b64", "rb") as f:
-              content = f.read().decode()
-          body = {
-              "message": "The poster from the published film",
-              "content": content,
-          }
-          if sha:
-              body["sha"] = sha
-          req = urllib.request.Request(
-              url, data=json.dumps(body).encode(), headers=headers, method="PUT"
-          )
-          urllib.request.urlopen(req, timeout=60)
-          print("poster.jpg updated")
+
+          for path, blob, message in [
+              ("poster.jpg", "poster.b64", "The poster from the published film"),
+              ("subtitles_en.srt", "subtitles.b64", "The subtitles from the published film"),
+          ]:
+              url = base + path
+              sha = None
+              try:
+                  req = urllib.request.Request(url, headers=headers)
+                  sha = json.load(urllib.request.urlopen(req))["sha"]
+              except Exception:
+                  pass
+              with open(blob, "rb") as f:
+                  content = f.read().decode()
+              body = {"message": message, "content": content}
+              if sha:
+                  body["sha"] = sha
+              req = urllib.request.Request(
+                  url, data=json.dumps(body).encode(), headers=headers, method="PUT"
+              )
+              urllib.request.urlopen(req, timeout=60)
+              print(path, "updated")
           PY
