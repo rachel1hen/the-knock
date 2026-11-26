@@ -51,14 +51,15 @@ jobs:
         with:
           run-id: ${{ steps.pick.outputs.run }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          pattern: the-knock
+          # name, not pattern: a pattern nests each artifact in its own folder
+          name: the-knock
           path: film
       - name: take the subtitles
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ steps.pick.outputs.run }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          pattern: subtitles
+          name: subtitles
           path: subs
       - name: what is in the box
         run: |

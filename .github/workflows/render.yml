@@ -219,16 +219,23 @@ jobs:
       - name: check the film
         run: |
           mkdir -p out/checks
-          # loudness: the library's muxer aims for -14 LUFS; measure what we got
-          ffmpeg -v error -i the-knock.mp4 -af ebur128=framelog=quiet -f null - 2> out/checks/loudness.txt || true
+          # loudness: the library's muxer aims for -14 LUFS; measure what we got.
+          # -v info, not -v error: the ebur128 summary lives at info level, and
+          # silencing it left the grep with nothing to find.
+          ffmpeg -hide_banner -nostats -v info -i the-knock.mp4 -af ebur128=framelog=quiet -f null - 2> out/checks/loudness.txt || true
           grep -A 4 "Integrated loudness" out/checks/loudness.txt > out/checks/loudness.summary || true
           # black frames: none may hold for longer than half a second
-          ffmpeg -v error -i the-knock.mp4 -vf blackdetect=d=0.5:pix_th=0.10 -an -f null - 2> out/checks/black.txt || true
+          ffmpeg -hide_banner -nostats -v info -i the-knock.mp4 -vf blackdetect=d=0.5:pix_th=0.10 -an -f null - 2> out/checks/black.txt || true
           grep -c "black_start" out/checks/black.txt > out/checks/black.count || echo 0 > out/checks/black.count
           # a contact sheet, so the film can be looked at without downloading it
           ffmpeg -v error -i the-knock.mp4 -vf "fps=1/20,scale=480:-1,tile=5x6" -frames:v 1 -q:v 3 out/checks/sheet.jpg
           cat out/checks/loudness.summary
           echo "black segments over 0.5 s: $(cat out/checks/black.count)"
+          # a check that cannot fail is not a check
+          if [ ! -s out/checks/loudness.summary ]; then
+            echo "::error::the loudness summary is empty - the measurement did not run"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: checks
