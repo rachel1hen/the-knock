@@ -97,15 +97,15 @@ jobs:
           gh release view "$TAG" --json url,tagName,name \
             --jq '"release: " + .url'
       - id: cipher
-        run: echo "b64=$(base64 -w0 film/poster.jpg)" >> "$GITHUB_OUTPUT"
+        # the base64 goes to a file, not an environment variable: a 200 KB
+        # value in the environment makes the argument list too long
+        run: base64 -w0 film/poster.jpg > poster.b64
       - name: the poster in the repository matches the film
         # the tracked poster.jpg is what a visitor sees on the repo page
-        env:
-          POSTER_B64: ${{ steps.cipher.outputs.b64 }}
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json, os, urllib.request
+          import base64, json, os, urllib.request
 
           token = os.environ["GH_TOKEN"]
           url = "https://api.github.com/repos/rachel1hen/the-knock/contents/poster.jpg"
@@ -120,9 +120,11 @@ jobs:
               sha = json.load(urllib.request.urlopen(req))["sha"]
           except Exception:
               pass
+          with open("poster.b64", "rb") as f:
+              content = f.read().decode()
           body = {
               "message": "The poster from the published film",
-              "content": os.environ["POSTER_B64"],
+              "content": content,
           }
           if sha:
               body["sha"] = sha
